@@ -1,7 +1,0 @@
-{
-  "name": "TrenIno",
-  "integrations": {
-    "cordova": {}
-  },
-  "type": "ionic-angular"
-}
