@@ -160,7 +160,7 @@ void scanHub(PoweredUpHub *myTrain, int idTrain) {
           if (myTrain->isConnected()) {
                       
                 Serial.println("Connected to " + myTrains[idTrain].hubColor + " -> "  + myTrains[idTrain].hubAddress);   
-
+				myTrain->activateButtonReports();
                 myTrain->activatePortDevice(0x3A, 40); // Tilt-Sensor            
                 myTrain->activatePortDevice(_portB, 37);    // port for sensor
                 
@@ -179,16 +179,28 @@ void scanHub(PoweredUpHub *myTrain, int idTrain) {
       }            
 }
 
+void myTrainHubButtonCallback(bool isPressed) {
+  if (isPressed) {
+      Serial.println("myTrainHub1 Button pressed");
+  } else {
+      Serial.println("myTrainHub1 Button released");
+  }
+}
+
 void handleHub(PoweredUpHub *myTrain, int idTrain) {
 
   //Serial.print("Handle Hub ");
   //Serial.println(idTrain);
       
     if (myTrain->isConnected()) {
-                               
+
+            //myTrain->registerButtonCallback(&myTrainHubButtonCallback);
+            //myTrain->activateButtonReports();
+
+           
             if(myTrain->isButtonPressed()){
 
-              delay(500);
+              //delay(500);
                                         
               switch (myTrains[idTrain].hubState){
         
