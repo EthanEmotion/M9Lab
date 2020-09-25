@@ -46,12 +46,13 @@ Train myTrains[MY_TRAIN_LEN] = {
 int connectedTrain=0;
 bool isInitialized = false;
 bool isSystemReady = false;
+bool isVerbose = false;
 
 
 void setup() {
     delay(3000);
     Serial.begin(115200);
-    Serial.println("Hold Hub button for at least half second to change status");        
+    _println("Hold Hub button for at least half second to change status");        
 } 
 
 
@@ -61,10 +62,10 @@ void loop() {
   checkRemote();
     
   for (int i = 0; i < MY_TRAIN_LEN; i++){      
-      if (! myTrains[i].hubobj->isConnected()){
-        scanHub(myTrains[i].hubobj,i);          
-      }else{
-        handleHub(myTrains[i].hubobj,i);        
+      if (! myTrains[i].hubobj->isConnected()){        
+        scanHub(i);          
+      }else{        
+        handleHub(i);
       }      
   }
 
@@ -72,7 +73,7 @@ void loop() {
   if (isSystemReady) {
     doMainCode();
   }else{
-    Serial.println("System not ready yet!");
+    _println("System not ready yet!");
   }
     
 } // End of loop
@@ -81,7 +82,7 @@ void loop() {
 void doMainCode(){
 
   // faccio partire il primo treno disponibile
-   Serial.println("Maincode");
+   _println("Maincode");
   
 }
 
@@ -89,17 +90,17 @@ void checkRemote(){
   
   if (myRemote.isConnecting()){
     
-      Serial.println("hub type: " + myRemote.getHubType());
+      _println("hub type: " + myRemote.getHubType());
       //if (myRemote.getHubType() == POWERED_UP_REMOTE){
         //This is the right device 
         if (!myRemote.connectHub())
         {
-          Serial.println("Unable to connect to hub");
+          _println("Unable to connect to hub");
         }
         else
         {
           myRemote.setLedColor(YELLOW);
-          Serial.println("Remote connected.");
+          _println("Remote connected.");
         }
         
       //}
@@ -117,13 +118,13 @@ void checkRemote(){
 
   if (myRemote.isConnected() && ! isInitialized){ //&& MY_TRAIN_LEN == connectedTrain o tutti alemeno 1 , nessuno?
 
-      Serial.println("System is initialized");
+      _println("System is initialized");
       isInitialized = true;
       // both activations are needed to get status updates
       myRemote.activateButtonReports(); 
       myRemote.activatePortDevice(_portLeft, 55);
       //myRemote.activatePortDevice(_portRight, 55);
-      myRemote.setLedColor(BLUE);    
+      myRemote.setLedColor(PURPLE);    
   }  
 
   
@@ -133,12 +134,12 @@ void checkRemote(){
             isSystemReady = false;
             myRemote.setLedColor(RED);  
 
-            Serial.println("System is stopped");
+            _println("System is stopped");
             
         }else{
             isSystemReady = true;
             myRemote.setLedColor(GREEN);     
-            Serial.println("System is running");
+            _println("System is running");
         }        
     }      
   }  
@@ -146,51 +147,40 @@ void checkRemote(){
 }
 
 
-void scanHub(PoweredUpHub *myTrain, int idTrain) {
-    //Serial.print("Scan for Hub ");
-    //Serial.println(myTrains[idTrain].id);
+void scanHub( int idTrain) {
+
+    PoweredUpHub *myTrain = myTrains[idTrain].hubobj;
 
     if (!myTrain->isConnected() && !myTrain->isConnecting()) {     
-      myTrain->init(myTrains[idTrain].hubAddress.c_str(),1);         
-      //myTrain->init();                
+      myTrain->init(myTrains[idTrain].hubAddress.c_str(),1);               
     }  
 
       if (myTrain->isConnecting()) {
           myTrain->connectHub();
           if (myTrain->isConnected()) {
                       
-                Serial.println("Connected to " + myTrains[idTrain].hubColor + " -> "  + myTrains[idTrain].hubAddress);   
-				myTrain->activateButtonReports();
-                myTrain->activatePortDevice(0x3A, 40); // Tilt-Sensor            
-                myTrain->activatePortDevice(_portB, 37);    // port for sensor
-                
-
-                delay(300);
-                
-                Serial.print("BatteryLevel [%]: ");
-                Serial.println(myTrain->getBatteryLevel(), DEC);   
-      
-                myTrains[idTrain].hubState=0; 
-                    
-                myTrain->setLedColor(BLUE);
+                _println("Connected to " + myTrains[idTrain].hubColor + " -> "  + myTrains[idTrain].hubAddress);   
+                myTrains[idTrain].hubState=0;                     
+                myTrain->setLedColor(PURPLE);
                 connectedTrain++;
           }
       
       }            
 }
 
+/*
 void myTrainHubButtonCallback(bool isPressed) {
   if (isPressed) {
-      Serial.println("myTrainHub1 Button pressed");
+      _println("myTrainHub1 Button pressed");
   } else {
-      Serial.println("myTrainHub1 Button released");
+      _println("myTrainHub1 Button released");
   }
 }
+*/
 
-void handleHub(PoweredUpHub *myTrain, int idTrain) {
+void handleHub(int idTrain) {
 
-  //Serial.print("Handle Hub ");
-  //Serial.println(idTrain);
+    PoweredUpHub *myTrain = myTrains[idTrain].hubobj;
       
     if (myTrain->isConnected()) {
 
@@ -199,27 +189,31 @@ void handleHub(PoweredUpHub *myTrain, int idTrain) {
 
            
             if(myTrain->isButtonPressed()){
-
-              //delay(500);
-                                        
+                                                      
               switch (myTrains[idTrain].hubState){
         
                   case 0: //ready -> active
                   {
                     myTrain->setLedColor(GREEN);
-                    Serial.println("Hub " + myTrains[idTrain].code + " started"); 
-                    myTrains[idTrain].hubState=1;                
-                    //myTrain->setMotorSpeed(_portA, 15);
+                    
+                    _println("Hub " + myTrains[idTrain].code + " started"); 
+                    myTrains[idTrain].hubState=1;  
+
+                    _print("BatteryLevel [%]: ");
+                    _println( String(getTrainBattery(myTrain)));                      
+
+                    // connect color sensor   
+                    myTrain->activatePortDevice(_portB, 37);    // port for sensor                                                                 
+ 
                     
                   }
                   break;
           
                   case 1: //active -> turnoff
-                  {
-                         
-                      myTrain->setLedColor(RED);
-                      delay(500); 
-                      //myTrain->setMotorSpeed(_portA, 0);                
+                  {                         
+                      myTrain->setLedColor(RED);                            
+                      // disconnect color sensor  
+                      myTrain->deactivatePortDevice(_portB, 37);                                           
                       myTrain->shutDownHub();       
                       connectedTrain--;                     
                       myTrains[idTrain].hubState=-1;                      
@@ -233,30 +227,48 @@ void handleHub(PoweredUpHub *myTrain, int idTrain) {
 
             if (myTrains[idTrain].hubState==1){
   
-              // read color value of sensor
-              delay(100);
-              int color = myTrain->getColor();
-              delay(100);
-              Serial.print("Detected color of hub " +  myTrains[idTrain].hubColor + ": ");
-              Serial.println(color, DEC);
+              // read color value of sensor              
+              int color = myTrain->getColor();              
+              _print("Detected color of hub " +  myTrains[idTrain].hubColor + ": ");
+              _println(String(color));
               
               // set hub LED color to detected color of sensor
+              //2x rossi, blu, giallo e verde
+              
               // 5 verde ; 10 bianco
               if (color == 9) { 
-                  //myTrain->setLedColor(RED);
-                  myTrain->stopMotor(_portA);     // stop
+                  _print("Stop");
+                  myTrain->setLedColor(RED);
+                  myTrain->stopMotor(_portA);     // stop                  
               } else if (color == 7){
-                  //myTrain->setLedColor(YELLOW);
-                  myTrain->setMotorSpeed(_portA, 25);   // go
+                  _print("Invert");
+                  myTrain->setLedColor(YELLOW);
+                  myTrain->stopMotor(_portA);
+                  delay(100);
+                  myTrain->setMotorSpeed(_portA, -50);   // go                  
               }else if (color == 3){ 
-                  //myTrain->setLedColor(BLUE);
+                  // to implement
+                  _print("stop & go");
+                  myTrain->setLedColor(BLUE);
                   //myTrain->setMotorSpeedForTime(_portA, 0, 5000);   // stop for 5 seconds             
-              } 
+              } else{
+                  myTrain->setLedColor(GREEN);
+              }
                 
             }
-            
-           
                  
         }  //end is connected
   
+}
+
+uint8_t getTrainBattery(PoweredUpHub *myTrain){      
+    return myTrain->getBatteryLevel();
+}
+
+void _print(String text){
+  if(isVerbose) Serial.print(text);
+}
+
+void _println(String text){
+  if(isVerbose) Serial.println(text);
 }
