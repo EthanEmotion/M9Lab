@@ -1,6 +1,8 @@
 /**
- * A Legoino example to control a train which has a motor connected
- * to the Port A of the Hub
+ * Step order:
+ * 
+ * 1) turn on all train hubs and set on ready (CYAN)
+ * 2) turn on remote controller and set system on ready (CYAN)
  * 
  * (c) Copyright 2020 - SteFX
  * Released under MIT License
@@ -36,10 +38,10 @@ typedef struct {
 } Train;
 
 
-//N - code  - hubobj - hubColor  -  hubAddress - hubState (-1 = off, 0=ready, 1=active)  - trainState(0 = stopped in Shed, 1 = forward, -1 = backwards, 2= stopped in hidden place) 
+//N - code  - hubobj - hubColor  -  hubAddress - hubState (2 = off, 0=ready, 1=active)  - trainState(0 = stopped in Shed, 1 = forward, -1 = backwards, 2= stopped in hidden place) 
 Train myTrains[MY_TRAIN_LEN] = {
-  { 1, "TA", &myTrainHub_TA, "Yellow" , "90:84:2b:04:a8:c5", -1, 0},
-  { 2, "TB", &myTrainHub_TB, "Red", "90:84:2b:1c:be:cf", -1, 0}  
+  { 1, "TA", &myTrainHub_TA, "Yellow" , "90:84:2b:04:a8:c5", 2, 0}
+  ,{ 2, "TB", &myTrainHub_TB, "Red", "90:84:2b:1c:be:cf", 2, 0}  
 };
 
 
@@ -72,21 +74,20 @@ void setup() {
 // main loop
 void loop() {
 
-  checkRemote();
+  //if (!isInitialized) checkRemote();
     
   for (int i = 0; i < MY_TRAIN_LEN; i++){      
       if (! myTrains[i].hubobj->isConnected()){        
         scanHub(i);          
       }else{        
         handleHub(i);
+        handleColor(i);
       }      
   }
 
   // main code here
   if (isSystemReady) {
     doMainCode();
-  }else{
-    _println("System not ready yet!");
   }
     
 } // End of loop
@@ -168,11 +169,14 @@ void scanHub( int idTrain) {
     PoweredUpHub *myTrain = myTrains[idTrain].hubobj;
 
     if (!myTrain->isConnected() && !myTrain->isConnecting()) {     
+      Serial.println("Ne connesso ne collegato");
       myTrain->init(myTrains[idTrain].hubAddress.c_str(),1);               
     }  
 
       if (myTrain->isConnecting()) {
+          
           myTrain->connectHub();
+          delay (300);
           if (myTrain->isConnected()) {
                       
                 _println("Connected to " + myTrains[idTrain].hubColor + " -> "  + myTrains[idTrain].hubAddress);   
@@ -194,112 +198,120 @@ void myTrainHubButtonCallback(bool isPressed) {
 }
 */
 
-void handleHub(int idTrain) {
+void handleColor(int idTrain) {
 
     PoweredUpHub *myTrain = myTrains[idTrain].hubobj;
-      
-    if (myTrain->isConnected()) {
-
-            //myTrain->registerButtonCallback(&myTrainHubButtonCallback);
-            //myTrain->activateButtonReports();
-
-           
-            if(myTrain->isButtonPressed()){
-                                                      
-              switch (myTrains[idTrain].hubState){
-        
-                  case 0: //ready -> active
-                  {
-                    myTrain->setLedColor(CYAN);
-                    
-                    _println("Hub " + myTrains[idTrain].code + " started"); 
-                    myTrains[idTrain].hubState=1;  
-
-                    _print("BatteryLevel [%]: ");
-                    _println( String(getTrainBattery(myTrain)));                      
-
-                    // connect color sensor   
-                    myTrain->activatePortDevice(_portB, 37);    // port for sensor                                                                 
- 
-                    
-                  }
-                  break;
           
-                  case 1: //active -> turnoff
-                  {                         
-                      myTrain->setLedColor(RED);                            
-                      // disconnect color sensor  
-                      myTrain->deactivatePortDevice(_portB, 37);                                           
-                      myTrain->shutDownHub();       
-                      connectedTrain--;                     
-                      myTrains[idTrain].hubState=-1;                      
-                    
-                  }
-                  break;
-                
-                }
-                
-           }
+    if (myTrains[idTrain].hubState==1){
 
-            if (myTrains[idTrain].hubState==1){
-  
-              // read color value of sensor              
-              int color = myTrain->getColor();              
-              _print("Detected color of hub " +  myTrains[idTrain].hubColor + ": ");
-              _println(String(color));
-              
-              // set hub LED color to detected color of sensor
-              //rossi-> stop, blu-> stop and go, giallo-> stop and invert e verde->Invert
-              
-              // 5 verde ; 10 bianco
-              if (color == 9) { 
-                    _print("Stop");
-                    myTrain->setLedColor(RED);
-                    myTrain->stopMotor(_portA);     // stop                  
-              } else if (color == 6){
-                    _print("Invert");
-                    myTrain->setLedColor(GREEN);
-                    myTrain->stopMotor(_portA);
-                    delay(100);
-                    myTrain->setMotorSpeed(_portA, -1 * velocity);   // go                  
-              }else if (color == 3){ 
-                    // TODO Check
-                    _print("Stop & Go");
-                    if (checkTheTime(stopandgo_previousMillis, stopandgo_interval)){
-                       myTrain->setMotorSpeed(_portA, velocity);
-                    }else{
-                       saveTheTime(stopandgo_previousMillis);
-                       myTrain->stopMotor(_portA);  
-                    }
+          // read color value of sensor              
+          int color = myTrain->getColor();    
+          if (color>0){          
+            _print("Detected color of hub " +  myTrains[idTrain].hubColor + ": ");
+            _println(String(color));
+          }  
                     
-                    myTrain->setLedColor(BLUE);
-                    myTrain->stopMotor(_portA);                    
-                    
-                  //myTrain->setMotorSpeedForTime(_portA, 0, 5000);   // stop for 5 seconds             
-              }else if (color == 7){ 
-                    // TODO Check
-                    _print("Stop & Invert");
-                    if (checkTheTime(stopandinvert_previousMillis, stopandinvert_interval)){
-                       myTrain->setMotorSpeed(_portA, -1 * velocity);
-                    }else{
-                       saveTheTime(stopandinvert_previousMillis);
-                       myTrain->stopMotor(_portA);  
-                    }
-                    
-                    myTrain->setLedColor(BLUE);
-                    myTrain->stopMotor(_portA);                    
-                    
-                  //myTrain->setMotorSpeedForTime(_portA, 0, 5000);   // stop for 5 seconds             
-              }              
-              
-              else{
-                  myTrain->setLedColor(CYAN);
+          // set hub LED color to detected color of sensor
+          //rossi-> stop, blu-> stop and go, giallo-> stop and invert e verde->Invert
+          
+        // 5 verde ; 10 bianco; 9 rosso; 3 blu; 7 giallo
+        if (color == 9) { 
+              _print("Stop");
+              myTrain->setLedColor(RED);
+              myTrain->stopMotor(_portA);     // stop  
+        } else if (color == 10){
+              _print("Go");
+              myTrain->setLedColor(WHITE);                    
+              myTrain->setMotorSpeed(_portA, velocity);   // go                               
+        } else if (color == 5){
+              _print("Invert");
+              myTrain->setLedColor(GREEN);
+              myTrain->stopMotor(_portA);                    
+              delay(100);
+              myTrain->setMotorSpeed(_portA, -1 * velocity);   // -1 * velocity                  
+        }else if (color == 3){                     
+              _print("Stop & Go");
+              myTrain->setLedColor(BLUE);                    
+
+              if (stopandgo_previousMillis==0){
+                saveInterval(stopandgo_previousMillis);                      
+                myTrain->stopMotor(_portA);  
               }
-                
-            }
-                 
-        }  //end is connected
+              
+              if (checkIntervalisExpired(stopandgo_previousMillis, stopandgo_interval)){
+                 myTrain->setMotorSpeed(_portA, velocity);
+                 stopandgo_previousMillis = 0;
+              }                                                               
+              
+            //myTrain->setMotorSpeedForTime(_portA, 0, 5000);   // stop for 5 seconds             
+        }else if (color == 7){ 
+              // TODO Check
+              _print("Stop & Invert");
+              myTrain->setLedColor(YELLOW);
+
+              if (stopandgo_previousMillis==0){
+                saveInterval(stopandinvert_previousMillis);                      
+                myTrain->stopMotor(_portA);  
+              }
+              
+              if (checkIntervalisExpired(stopandinvert_previousMillis, stopandinvert_interval)){
+                 myTrain->setMotorSpeed(_portA, -1 * velocity);
+                 stopandinvert_previousMillis = 0;
+              }                                                                                                   
+        }              
+        
+        else{
+            myTrain->setLedColor(CYAN);
+        }
+          
+      }                
+
+}    
+
+void handleHub(int idTrain) {
+
+    PoweredUpHub *myTrain = myTrains[idTrain].hubobj;         
+    //myTrain->registerButtonCallback(&myTrainHubButtonCallback);
+    //myTrain->activateButtonReports();
+   
+    if(myTrain->isButtonPressed()){
+      delay(500);                                                   
+      switch (myTrains[idTrain].hubState){
+
+          case 0: //ready -> active
+          {
+            myTrain->setLedColor(CYAN);
+            
+            _println("Hub " + myTrains[idTrain].code + " started"); 
+            myTrains[idTrain].hubState=1;  
+
+            _print("BatteryLevel [%]: ");
+            _println( String(getTrainBattery(myTrain)));                      
+
+            // connect color sensor   
+            myTrain->activatePortDevice(_portB, 37);    // port for sensor                                                                 
+            
+          }
+          break;
   
+          case 1: //active -> turnoff
+          {                         
+              myTrain->setLedColor(RED);                            
+              // disconnect color sensor  
+              myTrain->deactivatePortDevice(_portB, 37);                                           
+              delay(100);
+              myTrain->shutDownHub();   
+                  
+              connectedTrain--;                     
+              myTrains[idTrain].hubState=2;                      
+            
+          }
+          break;
+        
+        }
+        
+   }
+                     
 }
 
 uint8_t getTrainBattery(PoweredUpHub *myTrain){      
@@ -314,10 +326,18 @@ void _println(String text){
   if(isVerbose) Serial.println(text);
 }
 
-void saveTheTime(unsigned long &previousMillis){
+void saveInterval(unsigned long &previousMillis){
+  _println("Setto timing");
   previousMillis = millis();
 }  
   
-bool checkTheTime(unsigned long previousMillis , int interval){
+bool checkIntervalisExpired(unsigned long &previousMillis , int interval){
+    
+  if (millis() - previousMillis > interval && previousMillis>0){
+    _println("true");  
+  }else{
+    _println("false");
+  }
+  
   return millis() - previousMillis > interval;
 }  
