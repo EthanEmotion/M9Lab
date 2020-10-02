@@ -55,7 +55,6 @@ unsigned long maincode_previousMillis = 0;
 int maincode_interval = 10000; //Wait for ?
 
 int velocity = 50;
-
 int connectedTrain=0;
 bool isInitialized = false;
 bool isSystemReady = false;
@@ -81,14 +80,13 @@ void loop() {
         scanHub(i);          
       }else{        
         handleHub(i);
-        handleColor(i);
+        // if (isSystemReady)
+		handleColor(i);
       }      
   }
 
   // main code here
-  if (isSystemReady) {
-    doMainCode();
-  }
+  if (isSystemReady) doMainCode();  
     
 } // End of loop
 
@@ -97,10 +95,38 @@ void doMainCode(){
   
    _println("Maincode");
    /*
-   1) controllo se ci sono treni fa far tornare e li faccio tornare
+   1) controllo se ci sono treni fa far tornare e li faccio tornare   
    2) controllo se ci sono treni fermi e li faccio uscire
    */
+   
+   /*
+   var trainId = checkIfTrainToComeBack();
+   if (trainId >- 1){
+	   PoweredUpHub *myTrain = myTrains[trainId].hubobj;
+	   myTrain->setMotorSpeed(_portA, -1 * velocity);   // go                               
+   }else{
+	   if (checkIfAllTrainIsStopped()){
+		    int randNumber = random(1, MY_TRAIN_LEN) - 1;
+			PoweredUpHub *myTrain = myTrains[randNumber].hubobj;			
+			myTrain->setMotorSpeed(_portA,  velocity);   
+	   }		   
+   }
+   */
   
+}
+
+int checkIfTrainToComeBack(){		
+	for (int i = 0; i < MY_TRAIN_LEN; i++){  
+		if (myTrains[i].trainState==2) return i;
+	}	
+	return -1;
+}
+
+bool checkIfAllTrainIsStopped(){		
+	for (int i = 0; i < MY_TRAIN_LEN; i++){  
+		if (myTrains[i].trainState>0) return false;
+	}	
+	return true;
 }
 
 void checkRemote(){
@@ -168,17 +194,15 @@ void scanHub( int idTrain) {
 
     PoweredUpHub *myTrain = myTrains[idTrain].hubobj;
 
-    if (!myTrain->isConnected() && !myTrain->isConnecting()) {     
-      Serial.println("Ne connesso ne collegato");
+    if (!myTrain->isConnected() && !myTrain->isConnecting()) {           
       myTrain->init(myTrains[idTrain].hubAddress.c_str(),1);               
     }  
 
       if (myTrain->isConnecting()) {
           
           myTrain->connectHub();
-          delay (300);
-          if (myTrain->isConnected()) {
-                      
+          delay (500);
+          if (myTrain->isConnected()) {                      
                 _println("Connected to " + myTrains[idTrain].hubColor + " -> "  + myTrains[idTrain].hubAddress);   
                 myTrains[idTrain].hubState=0;                     
                 myTrain->setLedColor(PURPLE);
@@ -187,16 +211,6 @@ void scanHub( int idTrain) {
       
       }            
 }
-
-/*
-void myTrainHubButtonCallback(bool isPressed) {
-  if (isPressed) {
-      _println("myTrainHub1 Button pressed");
-  } else {
-      _println("myTrainHub1 Button released");
-  }
-}
-*/
 
 void handleColor(int idTrain) {
 
@@ -219,16 +233,19 @@ void handleColor(int idTrain) {
               _print("Stop");
               myTrain->setLedColor(RED);
               myTrain->stopMotor(_portA);     // stop  
+			  myTrains[idTrain].trainState=0;
         } else if (color == 10){
               _print("Go");
               myTrain->setLedColor(WHITE);                    
               myTrain->setMotorSpeed(_portA, velocity);   // go                               
+			  myTrains[idTrain].trainState=1;
         } else if (color == 5){
               _print("Invert");
               myTrain->setLedColor(GREEN);
               myTrain->stopMotor(_portA);                    
               delay(100);
-              myTrain->setMotorSpeed(_portA, -1 * velocity);   // -1 * velocity                  
+              myTrain->setMotorSpeed(_portA, -1 * velocity);   // -1 * velocity   
+			  myTrains[idTrain].trainState=-1;			  
         }else if (color == 3){                     
               _print("Stop & Go");
               myTrain->setLedColor(BLUE);                    
@@ -240,6 +257,7 @@ void handleColor(int idTrain) {
               
               if (checkIntervalisExpired(stopandgo_previousMillis, stopandgo_interval)){
                  myTrain->setMotorSpeed(_portA, velocity);
+				 myTrains[idTrain].trainState=1;			  
                  stopandgo_previousMillis = 0;
               }                                                               
               
@@ -256,6 +274,7 @@ void handleColor(int idTrain) {
               
               if (checkIntervalisExpired(stopandinvert_previousMillis, stopandinvert_interval)){
                  myTrain->setMotorSpeed(_portA, -1 * velocity);
+				 myTrains[idTrain].trainState=-1;			  
                  stopandinvert_previousMillis = 0;
               }                                                                                                   
         }              
@@ -267,6 +286,16 @@ void handleColor(int idTrain) {
       }                
 
 }    
+
+/*
+void myTrainHubButtonCallback(bool isPressed) {
+  if (isPressed) {
+      _println("myTrainHub1 Button pressed");
+  } else {
+      _println("myTrainHub1 Button released");
+  }
+}
+*/
 
 void handleHub(int idTrain) {
 
