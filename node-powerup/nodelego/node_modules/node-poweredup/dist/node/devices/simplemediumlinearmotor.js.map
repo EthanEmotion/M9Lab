@@ -1,0 +1,1 @@
+{"version":3,"file":"simplemediumlinearmotor.js","sourceRoot":"","sources":["../../../src/devices/simplemediumlinearmotor.ts"],"names":[],"mappings":";;;;;;;;;;;;;;;;;;;;;;AAAA,6CAA0C;AAI1C,kDAAoC;AAEpC;;;GAGG;AACH,MAAa,uBAAwB,SAAQ,uBAAU;IAEnD,YAAa,GAAqB,EAAE,MAAc;QAC9C,KAAK,CAAC,GAAG,EAAE,MAAM,EAAE,EAAE,EAAE,MAAM,CAAC,UAAU,CAAC,0BAA0B,CAAC,CAAC;IACzE,CAAC;CAEJ;AAND,0DAMC"}
