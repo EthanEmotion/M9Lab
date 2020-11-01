@@ -3,6 +3,7 @@
 // create a hub instance
 Lpf2Hub myTrainHub_TA;
 Lpf2Hub myTrainHub_TB;
+Lpf2Hub myTrainHub_TC;
 byte portA = (byte)PoweredUpHubPort::A;
 byte portB = (byte)PoweredUpHubPort::B;
 
@@ -13,8 +14,7 @@ bool isInitialized = false;
 bool isSystemReady = false;
 
 // declare a custom structure for trains
-typedef struct {  
-  String code;
+typedef struct {    
   Lpf2Hub* hubobj;
   String hubColor;
   String hubAddress;
@@ -36,8 +36,9 @@ byte sensorAcceptedColors[] = {(byte)Color::WHITE, (byte)Color::CYAN, (byte)Colo
 // Trains Maps
 //code  - hubobj - hubColor  -  hubAddress - speed - lastcolor - hubState (2 = off, 0=ready, 1=active)  - trainState(0 = stopped in Shed, 1 = forward, -1 = backwards, 2= stopped in hidden place) 
 Train myTrains[] = {
-   { "TA", &myTrainHub_TA, "Yellow" , "90:84:2b:04:a8:c5", trainSpeed, 0, 0, 2, 0}
-  ,{ "TB", &myTrainHub_TB, "Red", "90:84:2b:1c:be:cf", trainSpeed, 0, 0 ,2, 0}  
+   { &myTrainHub_TA, "Yellow" , "90:84:2b:04:a8:c5", trainSpeed, 0, 0, 2, 0}
+  ,{ &myTrainHub_TB, "Red", "90:84:2b:1c:be:cf", trainSpeed, 0, 0 ,2, 0}  
+  ,{ &myTrainHub_TC, "Green", "90:84:2b:16:9a:1f", trainSpeed, 0, 0 ,2, 0}     
 };
 
 /* end config */
@@ -61,7 +62,7 @@ void hubButtonCallback(void *hub, HubPropertyReference hubProperty, uint8_t *pDa
           case 0: //ready -> active
           {
                         
-            _println("Hub " + myTrains[idTrain].code + " started"); 
+            _println("Hub " + myTrains[idTrain].hubColor + " started"); 
             myTrains[idTrain].hubState=1;  
 
             _print("check ports... if needed sensor is already connected: ");
@@ -114,7 +115,7 @@ void colorDistanceSensorCallback(void *hub, byte portNumber, DeviceType deviceTy
     myTrains[idTrain].lastcolor = color;    
 	/*
     _print("Color ");
-    _print("Hub " + myTrains[idTrain].code + ":"); 
+    _print("Hub " + myTrains[idTrain].hubColor + ":"); 
     _println(COLOR_STRING[color]);
     _print("Color dec: ");
     _println(color,DEC);    
