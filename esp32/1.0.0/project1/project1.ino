@@ -46,6 +46,59 @@ Train myTrains[] = {
 #define MY_TRAIN_LEN (sizeof(myTrains)/sizeof(int))
 
 
+void hubPropertyChangeCallback(void *hub, HubPropertyReference hubProperty, uint8_t *pData)
+{
+  Lpf2Hub *myHub = (Lpf2Hub *)hub;
+
+  Serial.print("HubProperty: ");
+  Serial.println((byte)hubProperty, HEX);
+
+  if (hubProperty == HubPropertyReference::BATTERY_VOLTAGE)
+  {
+    Serial.print("BatteryLevel: ");
+    Serial.println(myHub->parseBatteryLevel(pData), DEC);
+    return;
+  }
+
+  if (hubProperty == HubPropertyReference::BATTERY_TYPE)
+  {
+    Serial.print("BatteryType: ");
+    Serial.println(myHub->parseBatteryType(pData), HEX);
+    return;
+  }
+
+  if (hubProperty == HubPropertyReference::FW_VERSION)
+  {
+    Version version = myHub->parseVersion(pData);
+    Serial.print("FWVersion: ");
+    Serial.print(version.Major);
+    Serial.print("-");
+    Serial.print(version.Minor);
+    Serial.print("-");
+    Serial.print(version.Bugfix);
+    Serial.print(" Build: ");
+    Serial.println(version.Build);
+
+    return;
+  }
+
+  if (hubProperty == HubPropertyReference::HW_VERSION)
+  {
+    Version version = myHub->parseVersion(pData);
+    Serial.print("HWVersion: ");
+    Serial.print(version.Major);
+    Serial.print("-");
+    Serial.print(version.Minor);
+    Serial.print("-");
+    Serial.print(version.Bugfix);
+    Serial.print(" Build: ");
+    Serial.println(version.Build);
+
+    return;
+  }
+}
+
+
 
 void hubButtonCallback(void *hub, HubPropertyReference hubProperty, uint8_t *pData){
   Lpf2Hub *myHub = (Lpf2Hub *)hub;   
@@ -72,6 +125,8 @@ void hubButtonCallback(void *hub, HubPropertyReference hubProperty, uint8_t *pDa
       			  _println("activatePortDevice");
       			  myHub->activatePortDevice(portB, colorDistanceSensorCallback);
 				  delay(200);
+				  // myHub->activateHubPropertyUpdate(HubPropertyReference::BATTERY_VOLTAGE, hubPropertyChangeCallback);
+				  // delay(50);
             }      			
       		myHub->setLedColor(CYAN);            
           }
