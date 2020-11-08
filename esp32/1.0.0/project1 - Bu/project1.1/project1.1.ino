@@ -25,25 +25,25 @@ typedef struct {
   int speed;
   int lastcolor;
   unsigned long colorPreviousMillis;
-  byte hubState;
-  byte trainState;
+  byte hubState;  
   int batteryLevel;
 } Train;
 
 
 // Trains Maps
 #define MY_TRAIN_LEN 3
-#define MY_COLOR_LEN 5
+#define MY_COLOR_LEN 3
 
 // exclude black (trail) and RED (table) ..for now    
 //GREEN instead CYAN -> to add 
-byte sensorAcceptedColors[MY_COLOR_LEN] = {(byte)Color::WHITE, (byte)Color::CYAN, (byte)Color::BLUE, (byte)Color::RED, (byte)Color::YELLOW}; 
+//  (byte)Color::BLUE,(byte)Color::YELLOW
+byte sensorAcceptedColors[MY_COLOR_LEN] = {(byte)Color::WHITE, (byte)Color::CYAN,  (byte)Color::RED}; 
 
-//code  - hubobj - hubColor  -  hubAddress - speed - lastcolor - hubState (2 = off, 0=ready, 1=active)  - trainState(0 = stopped in Shed, 1 = forward, -1 = backwards, 2= stopped in hidden place)  - batteryLevel
+//code  - hubobj - hubColor  -  hubAddress - speed - lastcolor - hubState (-1 = off, 0=ready, 1=active) - batteryLevel
 Train myTrains[MY_TRAIN_LEN] = {
-   { &myTrainHub_TA, "Yellow" , "90:84:2b:04:a8:c5", trainSpeed, 0, 0, 2, 0, 100}
-  ,{ &myTrainHub_TB, "Red", "90:84:2b:1c:be:cf", trainSpeed, 0, 0 ,2, 0, 100}  
-  ,{ &myTrainHub_TC, "Green", "90:84:2b:16:9a:1f", trainSpeed, 0, 0 ,2, 0, 100}     
+   { &myTrainHub_TA, "Yellow" , "90:84:2b:04:a8:c5", trainSpeed, 0, 0, -1, 100}
+  ,{ &myTrainHub_TB, "Red", "90:84:2b:1c:be:cf", trainSpeed, 0, 0 ,-1, 100}  
+  ,{ &myTrainHub_TC, "Green", "90:84:2b:16:9a:1f", trainSpeed, 0, 0 ,-1, 100}     
 };
 
 
@@ -57,8 +57,8 @@ void hubButtonCallback(void *hub, HubPropertyReference hubProperty, uint8_t *pDa
   if (hubProperty == HubPropertyReference::BATTERY_VOLTAGE)
   {    
     myTrains[idTrain].batteryLevel = myHub->parseBatteryLevel(pData);
-    Serial.print("BatteryLevel: ");    
-    Serial.println(myTrains[idTrain].batteryLevel, DEC);   
+    //Serial.print("BatteryLevel: ");    
+    //Serial.println(myTrains[idTrain].batteryLevel, DEC);   
     return;
   }
 
@@ -101,7 +101,7 @@ void hubButtonCallback(void *hub, HubPropertyReference hubProperty, uint8_t *pDa
               _println("Disconnected: " + myTrains[idTrain].hubColor + " -> "  + myTrains[idTrain].hubAddress);   
                   
               connectedTrain--;                     
-              myTrains[idTrain].hubState=2;                      
+              myTrains[idTrain].hubState=-1;                      
             
           }
           break;
@@ -133,24 +133,27 @@ void colorDistanceSensorCallback(void *hub, byte portNumber, DeviceType deviceTy
     Serial.print("Color dec: ");
     Serial.println(color,DEC);    
 
-    // aggiorno livello batteria (quando) ?
-    //setBatteryLevel(idTrain);
+    // aggiorno livello batteria (quando) ?    
 
     // set hub LED color to detected color of sensor and set motor speed dependent on color
     if (color == (byte)Color::RED){
       _println("Stop");
       myHub->setLedColor((Color)color);
-      myHub->stopBasicMotor(portA);
-      setBatteryLevel(idTrain);
+      myHub->stopBasicMotor(portA);    
+      myTrains[idTrain].speed = 0;     
     }
     
     else if (color == (byte)Color::WHITE){
       _println("Go");
+      _println("Train: " + myTrains[idTrain].hubColor + " Battery Level: "  + myTrains[idTrain].batteryLevel);   
       myHub->setLedColor((Color)color);
-      myHub->setBasicMotorSpeed(portA, myTrains[idTrain].speed);
+      if(myTrains[idTrain].speed < 0) myTrains[idTrain].speed = -1 * myTrains[idTrain].speed;                
+      if(myTrains[idTrain].speed==0){
+        myHub->setBasicMotorSpeed(portA, myTrains[idTrain].speed);        
+      }
     }
 
-    else if (color == (byte)Color::YELLOW) {              
+    else if (color == (byte)Color::CYAN) { //GREEN              
               _println("Stop & Invert");
               myHub->setLedColor((Color)color);
             
@@ -158,10 +161,9 @@ void colorDistanceSensorCallback(void *hub, byte portNumber, DeviceType deviceTy
                 saveInterval(myTrains[idTrain].colorPreviousMillis);                      
                 myHub->stopBasicMotor(portA);
                 // invert
-                myTrains[idTrain].speed = -1 * myTrains[idTrain].speed;                
               }
     }  
-    else if (color == (byte)Color::BLUE) {              
+    else if (color == (byte)Color::YELLOW) {              
               _println("Stop & Go");
               if (myTrains[idTrain].colorPreviousMillis == 0){
                 saveInterval(myTrains[idTrain].colorPreviousMillis);                      
@@ -170,7 +172,7 @@ void colorDistanceSensorCallback(void *hub, byte portNumber, DeviceType deviceTy
                                                                                                                               
     } 
     
-    else if (color == (byte)Color::CYAN){ //GREEN
+    else if (color == (byte)Color::BLUE){ 
       _println("Invert");
       myHub->setLedColor((Color)color);
       myTrains[idTrain].speed = -1 * myTrains[idTrain].speed;
@@ -215,12 +217,13 @@ void scanHub( int idTrain) {
             // set the name
             char hubName[myTrains[idTrain].hubColor.length()+1];
             myTrains[idTrain].hubColor.toCharArray(hubName, myTrains[idTrain].hubColor.length()+1);
-            myTrain->setHubName(hubName);
-            _print("Setting name->" )
-            _println(hubName);
-				  				
+            myTrain->setHubName(hubName);           			
+
+            // activate Property Update
   				  myTrain->activateHubPropertyUpdate(HubPropertyReference::BUTTON, hubButtonCallback);
   				  delay(200);
+            myTrain->activateHubPropertyUpdate(HubPropertyReference::BATTERY_VOLTAGE, hubButtonCallback);
+            delay(200);
   				  myTrain->setLedColor(PURPLE);
   				  myTrains[idTrain].hubState=0;    
   				  connectedTrain++;
@@ -255,16 +258,17 @@ void saveInterval(unsigned long &previousMillis){
 } 
 
 
+// not used
 int checkIfTrainToComeBack(){    
   for (int i = 0; i < MY_TRAIN_LEN; i++){  
-    if (myTrains[i].trainState==2) return i;
+    if (myTrains[i].speed<0) return i;
   } 
   return -1;
 }
 
 bool checkIfAllTrainIsStopped(){    
   for (int i = 0; i < MY_TRAIN_LEN; i++){  
-    if (myTrains[i].trainState>0) return false;
+    if (myTrains[i].speed<>0) return false;
   } 
   return true;
 }
@@ -278,24 +282,15 @@ bool checkIfSensorColorIsAccepted(byte inputColor){
 }
 
 
-void setBatteryLevel(int idTrain){
-  Lpf2Hub *myTrain = myTrains[idTrain].hubobj;
-  myTrain->activateHubPropertyUpdate(HubPropertyReference::BATTERY_VOLTAGE, hubButtonCallback);
-}
-
   
 void checkIntervalisExpired(int idTrain ){
 
   Lpf2Hub *myTrain = myTrains[idTrain].hubobj;
     
-  if (millis() - myTrains[idTrain].colorPreviousMillis > colorInterval && myTrains[idTrain].colorPreviousMillis>0){
-    
+  if (millis() - myTrains[idTrain].colorPreviousMillis > colorInterval && myTrains[idTrain].colorPreviousMillis>0){    
     _println("Expired");      
     myTrain->setBasicMotorSpeed(portA, myTrains[idTrain].speed);
-    myTrains[idTrain].colorPreviousMillis = 0;
-    
-  }else{
-    //_println("NotExipired");
+    myTrains[idTrain].colorPreviousMillis = 0;   
   }
     
 }  
