@@ -181,7 +181,7 @@ void checkRemote(){
             
         }else{
             isSystemReady = true;
-            myRemote.setLedColor(CYAN);     
+            myRemote.setLedColor(GREEN);     
             _println("System is running");
         }        
     }      
