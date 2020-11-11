@@ -1,4 +1,5 @@
-// Questo sketch gestisce 3 treni (A,B,C) su un tracciato dal deposito alla galeria
+// Questo sketch gestisce 3 treni (A,B,C) su un tracciato che va dal deposito alla galleria 
+// i treni partono una alla volta in maniera casuale
 // utilizza lego poweredup con la libreria Legoino by Cornelius Munz  (https://github.com/corneliusmunz/legoino)
 // necessita di 3 hub city per i treni (motore + sensore colore) e un hub technic (3 motori) per gli scambi.
 // TrenIno4 - 2020 Code by Stefx
@@ -11,7 +12,7 @@
 
 #include "Lpf2Hub.h"
 
-String ver = "1.3.0";
+String ver = "1.3.1";
 
 // create a hub instance
 Lpf2Hub myTrainHub_TA;
@@ -23,7 +24,7 @@ byte portB = (byte)PoweredUpHubPort::B;
 bool isSystemReady = false;
 int trainSpeed = 25;
 int connectedTrain = 0;
-bool isVerbose = true;
+bool isVerbose = false;
 int colorInterval = 5000;
 int beforeStartInterval = 5000;
 int lastTrainStarted = -1;
@@ -63,30 +64,46 @@ Train myTrains[MY_TRAIN_LEN] = {
 void printLegenda() {
 
   // print command
-  _println("*** M9Lab - TrenIno4 v." + ver + " ***");
-  _println("_________________________________________________");
-  _println("List of commands used by system:");
+  Serial.println("*** M9Lab - DepotIno v." + ver + " ***");
+  Serial.println("_________________________________________________");
+  Serial.println("List of commands used by system:");
 
-  _println("on = set system on");
-  _println("off = set system off");
-  _println("panic = shutDown all hubs and reset the system");
-  _println("reset = reset the system");
-  _println("status = show system status");
-  _println("help = show this message again");
+  Serial.println("on = set system on");
+  Serial.println("off = set system off");
+  Serial.println("panic = shutDown all hubs and reset the system");
+  Serial.println("reset = reset the system");
+  Serial.println("status = show system status");
+  Serial.println("help = show this message again");
+  Serial.println("verboseon = show more status messages");
+  Serial.println("verboseoff = show less status messages");
 
-  _println("_________________________________________________");
+  Serial.println("_________________________________________________");
 }
 
 void readFromSerial() {
   if (Serial.available()) {
     String command = Serial.readStringUntil('\n');
+	Serial.println(">" + command);
     if (command == "panic") panic();
-    if (command == "reset") systemReset();
-    if (command == "on") systemOn();
-    if (command == "off") systemOff();
-    if (command == "help") printLegenda();
-    if (command == "status") systemStatus();
+    else if(command == "reset") systemReset();
+    else if(command == "on") systemOn();
+    else if(command == "off") systemOff();
+    else if(command == "help") printLegenda();
+    else if(command == "status") systemStatus();
+	else if(command == "verboseon") verboseOn();
+	else if(command == "verboseoff") verboseOff();
+	else{
+		Serial.println(">command not found");
+	}
   }
+}
+
+void verboseOn() {
+  isVerbose = true;
+}
+
+void verboseOff() {
+  isVerbose = false;
 }
 
 void systemOn() {
@@ -116,7 +133,7 @@ void panic() {
     // shutDown all Hub
     Lpf2Hub *myTrain = myTrains[idTrain].hubobj;
     myTrain->shutDownHub();
-    _println("Disconnected: " + myTrains[idTrain].hubColor + " -> "  + myTrains[idTrain].hubAddress);
+    Serial.println("Disconnected from hub " + myTrains[idTrain].hubColor + " -> "  + myTrains[idTrain].hubAddress);
   }
   connectedTrain = 0;
 }
@@ -178,7 +195,7 @@ void hubButtonCallback(void *hub, HubPropertyReference hubProperty, uint8_t *pDa
         case 0: //ready -> active
           {
 
-            _println("Hub " + myTrains[idTrain].hubColor + " started");
+            Serial.println("Hub " + myTrains[idTrain].hubColor + " is ready");
             myTrains[idTrain].hubState = 1;
             connectedTrain++;
 
@@ -202,7 +219,7 @@ void hubButtonCallback(void *hub, HubPropertyReference hubProperty, uint8_t *pDa
             //myHub->deactivatePortDevice(_portB, 37);
             delay(100);
             myHub->shutDownHub();
-            _println("Disconnected: " + myTrains[idTrain].hubColor + " -> "  + myTrains[idTrain].hubAddress);
+            Serial.println("Disconnected from hub " + myTrains[idTrain].hubColor + " -> "  + myTrains[idTrain].hubAddress);
 
             connectedTrain--;
             myTrains[idTrain].hubState = -1;
@@ -349,7 +366,7 @@ void scanHub( int idTrain) {
     myTrain->connectHub();
     if (myTrain->isConnected()) {
       delay(500);
-      _println("Connected to " + myTrains[idTrain].hubColor + " -> "  + myTrains[idTrain].hubAddress);
+      Serial.println("Now connected with hub " + myTrains[idTrain].hubColor + " -> "  + myTrains[idTrain].hubAddress);
 
       // set the name
       char hubName[myTrains[idTrain].hubColor.length() + 1];
@@ -366,7 +383,7 @@ void scanHub( int idTrain) {
       connectedTrain++;
 
     } else {
-      _println("Failed to connect to HUB");
+      Serial.println("Failed to connect with hub" +  myTrains[idTrain].hubColor);
     }
 
   }
