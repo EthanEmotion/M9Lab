@@ -1,3 +1,4 @@
+
 // Questo sketch gestisce 3 treni (A,B,C) su un tracciato che va dal deposito alla galleria 
 // i treni partono una alla volta in maniera casuale
 // utilizza lego poweredup con la libreria Legoino by Cornelius Munz  (https://github.com/corneliusmunz/legoino)
@@ -144,30 +145,26 @@ void systemStatus() {
 
   //TODO
 
-  String command = "";
 
-  /*
-    for (int i = 0; i < MY_TRAIN_LEN; i++) {
-    command += myTrains[i].codice	+ ":" + String(myTrains[i].stato) + ",";
+	Serial.println("hubColor    |batteryLevel |hubState |trainState |speed");
+	Serial.println("_________________________________________________");
+    for (int idTrain = 0; idTrain < MY_TRAIN_LEN; idTrain++) {
+		
+		String space = "";
+		for (int x=0; x<myTrains[idTrain].hubColor.length()-10;x++) space += " ";			
+		Serial.println(myTrains[idTrain].hubColor + space + "|" + myTrains[idTrain].batteryLevel + "|" + myTrains[idTrain].hubState + "|" +  myTrains[idTrain].trainState + "|" + myTrains[idTrain].speed);
     }
-
-    for (int i = 0; i < MY_TRACK_LEN; i++) {
-    command += myTrack[i].codice  + ":" +  String(myTrack[i].stato) + ",";
-    }
+	Serial.println("_________________________________________________");
 
 
-    for (int i = 0; i < MY_SWITCH_LEN; i++) {
-    command += mySwitch[i].codice  + ":" + String(mySwitch[i].stato) + ",";
-    }
-
-    OR
+	/*    
 
     String commandx = "{\"TA\":" +  String(myTrains[0].stato) + ",\"TB\":" +  String(myTrains[1].stato) + ",\"TC\":" +  String(myTrains[2].stato) + ",\"SA\":" +  String(speedA1) + ",\"SB\":" +  String(speedA2)  + ",\"SC\":" +  String(speedB)  + ",\"S1\":" +  String(mySwitch[0].stato) + ",\"S2\":" +  String(mySwitch[1].stato) + "}";
     if (verbose) Serial.println(commandx);
+	
+
   */
 
-  command =  command.substring(0, command.length() - 1);
-  Serial.println('{' + command + '}');
 
 
 }
