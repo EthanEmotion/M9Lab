@@ -38,8 +38,8 @@ typedef struct {
   int speed;
   int lastcolor;
   unsigned long colorPreviousMillis;
-  byte hubState;
-  byte trainState;
+  int hubState;
+  int trainState;
   int batteryLevel;
 } Train;
 
@@ -146,13 +146,15 @@ void systemStatus() {
   //TODO
 
 
-	Serial.println("hubColor    |batteryLevel |hubState |trainState |speed");
+	Serial.println("hubColor    batteryLevel hubState trainState speed");
 	Serial.println("_________________________________________________");
     for (int idTrain = 0; idTrain < MY_TRAIN_LEN; idTrain++) {
 		
 		String space = "";
-		for (int x=0; x<myTrains[idTrain].hubColor.length()-10;x++) space += " ";			
-		Serial.println(myTrains[idTrain].hubColor + space + "|" + myTrains[idTrain].batteryLevel + "|" + myTrains[idTrain].hubState + "|" +  myTrains[idTrain].trainState + "|" + myTrains[idTrain].speed);
+		for (int x=0; x<myTrains[idTrain].hubColor.length()-10;x++){
+		  space += " ";			
+    }
+		Serial.println(myTrains[idTrain].hubColor + space + " " + myTrains[idTrain].batteryLevel + " " + myTrains[idTrain].hubState + " " +  myTrains[idTrain].trainState + " " + myTrains[idTrain].speed);
     }
 	Serial.println("_________________________________________________");
 
