@@ -10,8 +10,27 @@
 #include "Lpf2Hub.h"
 
 // create a hub instance
-Lpf2Hub myHub;
-byte portD = (byte)ControlPlusHubPort::D;
+Lpf2Hub mySwitch;
+byte portC = (byte)ControlPlusHubPort::C; //1
+byte portD = (byte)ControlPlusHubPort::D; //2
+
+int switchInterval = 220;
+int switchVelocity = 35;
+
+
+void readFromSerial() {
+  if (Serial.available()) {
+    String command = Serial.readStringUntil('\n');
+	Serial.println(">" + command);
+    if (command == "swa0") setSwitch(portC,switchVelocity);
+    else if(command == "swa1") setSwitch(portC,-1*switchVelocity)
+    else if(command == "swb0") setSwitch(portD,-1*switchVelocity);
+    else if(command == "swb1") setSwitch(portD,switchVelocity)
+	else{
+		Serial.println(">command not found");
+	}
+  }
+}
 
 void setup() {
     Serial.begin(115200);
@@ -21,46 +40,55 @@ void setup() {
 
 // main loop
 void loop() {
+		
 
-  if (!myHub.isConnected() && !myHub.isConnecting()) 
+  if (!mySwitch.isConnected() && !mySwitch.isConnecting()) 
   {
-    myHub.init(); 
+    mySwitch.init(); 
   }
 
   // connect flow. Search for BLE services and try to connect if the uuid of the hub is found
-  if (myHub.isConnecting()) {
-    myHub.connectHub();
-    if (myHub.isConnected()) {
+  if (mySwitch.isConnecting()) {
+    mySwitch.connectHub();
+    if (mySwitch.isConnected()) {
       Serial.println("Connected to HUB");
+	  char hubName[] = "Switch";
+	  mySwitch.setHubName(hubName);
+  	
     } else {
       Serial.println("Failed to connect to HUB");
     }
   }
 
   // if connected, you can set the name of the hub, the led color and shut it down
-  if (myHub.isConnected()) {
-
-    char hubName[] = "myControlPlusHub";
-    myHub.setHubName(hubName);
-  
-    myHub.setLedColor(GREEN);
-    delay(1000);
-    myHub.setLedColor(RED);
-
-    //sw
-    delay(1000);
-    myHub.setTachoMotorSpeed(portD, 35);
-    delay(220);
-    myHub.stopTachoMotor(portD);
-    delay(5000);
-    // stra
-    myHub.setTachoMotorSpeed(portD, -35);
-    delay(220);
-    myHub.stopTachoMotor(portD);
-    delay(5000);
+  if (mySwitch.isConnected()) {
+	  	
+	readFromSerial();        
 
   } else {
     Serial.println("ControlPlus hub is disconnected");
   }
   
 } // End of loop
+
+
+void setSwitch(byte port, int velocity){	
+
+	_println("setSwitch");
+	_println(port.toString().c_str());
+    
+    mySwitch.setTachoMotorSpeed(port, velocity);
+    delay(switchInterval);
+    mySwitch.stopTachoMotor(port);
+    
+}
+
+
+
+void _print(String text) {
+  if (isVerbose) Serial.print(text);
+}
+
+void _println(String text) {
+  if (isVerbose) Serial.println(text);
+}
