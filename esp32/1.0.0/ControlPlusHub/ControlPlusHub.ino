@@ -11,21 +11,40 @@
 
 // create a hub instance
 Lpf2Hub mySwitch;
-byte portC = (byte)ControlPlusHubPort::C; //1
-byte portD = (byte)ControlPlusHubPort::D; //2
-
+byte portC = (byte)ControlPlusHubPort::C; //0 -> Yellow
+byte portD = (byte)ControlPlusHubPort::D; //1 -> Red
 int switchInterval = 220;
-int switchVelocity = 35;
+
+
+typedef struct {
+  byte port;
+  String switchColor;
+  int switchState;  
+  int switchVelocity_straight;
+  int switchVelocity_change;  
+} Switches;
+
+
+#define MY_SWITCH_LEN 2
+
+//port  - color  -  status  - vel_str - vel_change 
+Switches mySwitches[MY_SWITCH_LEN] = {
+  { portC, "Yellow" , trainSpeed, 0, 35, 0}
+  { portD, "Red" , trainSpeed, 0, -35, 0}  
+};
+
+
 
 
 void readFromSerial() {
   if (Serial.available()) {
     String command = Serial.readStringUntil('\n');
 	Serial.println(">" + command);
-    if (command == "swa0") setSwitch(portC,switchVelocity);
-    else if(command == "swa1") setSwitch(portC,-1*switchVelocity)
-    else if(command == "swb0") setSwitch(portD,-1*switchVelocity);
-    else if(command == "swb1") setSwitch(portD,switchVelocity)
+    if (command == "swa0") setSwitch(mySwitches[0].port,mySwitches[0].switchVelocity_straight);
+    else if(command == "swa1") setSwitch(mySwitches[0].port,mySwitches[0].switchVelocity_change);
+    else if(command == "swb0") setSwitch(mySwitches[1].port,mySwitches[1].switchVelocity_straight);
+    else if(command == "swb1") setSwitch(mySwitches[1].port,mySwitches[1].switchVelocity_change);
+	else if(command == "resetsw") resetSwitch();
 	else{
 		Serial.println(">command not found");
 	}
@@ -91,4 +110,11 @@ void _print(String text) {
 
 void _println(String text) {
   if (isVerbose) Serial.println(text);
+}
+
+void resetSwitch() {
+  for (int idSwitch = 0; idSwitch < MY_SWITCH_LEN; idSwitch++) {   
+	setSwitch(mySwitches[idSwitch].port,mySwitches[0].switchVelocity_straight)  
+    myTrains[idSwitch].switchState = 0;
+  }
 }
