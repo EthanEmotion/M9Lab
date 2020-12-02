@@ -53,7 +53,7 @@ typedef struct {
 //  (byte)Color::BLUE,(byte)Color::YELLOW
 byte sensorAcceptedColors[MY_COLOR_LEN] = {(byte)Color::WHITE, (byte)Color::CYAN,  (byte)Color::RED};
 
-//code  - hubobj - hubColor  -  hubAddress - speed - lastcolor - hubState (-1 = off, 0=ready, 1=active) - batteryLevel
+//code  - hubobj - hubColor  -  hubAddress - speed - lastcolor - hubState (-1 = off, 0=ready, 1=active) - trainstate - batteryLevel
 Train myTrains[MY_TRAIN_LEN] = {
   { &myTrainHub_TA, "Yellow" , "90:84:2b:04:a8:c5", trainSpeed, 0, 0, -1, 0, 100}
   , { &myTrainHub_TB, "Red", "90:84:2b:1c:be:cf", trainSpeed, 0, 0 , -1, 0, 100}
