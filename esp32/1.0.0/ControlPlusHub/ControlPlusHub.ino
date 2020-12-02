@@ -6,6 +6,8 @@
  * Released under MIT License
  * 
  */
+ 
+ /* ver 1.1 */
 
 #include "Lpf2Hub.h"
 
@@ -14,12 +16,13 @@ Lpf2Hub mySwitch;
 byte portC = (byte)ControlPlusHubPort::C; //0 -> Yellow
 byte portD = (byte)ControlPlusHubPort::D; //1 -> Red
 int switchInterval = 220;
+bool isVerbose = true;
 
 
 typedef struct {
   byte port;
   String switchColor;
-  int switchState;  
+  bool switchState;  
   int switchVelocity_straight;
   int switchVelocity_change;  
 } Switches;
@@ -27,10 +30,10 @@ typedef struct {
 
 #define MY_SWITCH_LEN 2
 
-//port  - color  -  status  - vel_str - vel_change 
+//port  - color  -  status (0= straight 1= change) - vel_str - vel_change 
 Switches mySwitches[MY_SWITCH_LEN] = {
-  { portC, "Yellow" , trainSpeed, 0, 35, 0}
-  { portD, "Red" , trainSpeed, 0, -35, 0}  
+  { portC, "Yellow" , 0, 35, 0},
+  { portD, "Red" , 0, -35, 0}  
 };
 
 
@@ -40,10 +43,10 @@ void readFromSerial() {
   if (Serial.available()) {
     String command = Serial.readStringUntil('\n');
 	Serial.println(">" + command);
-    if (command == "swa0") setSwitch(mySwitches[0].port,mySwitches[0].switchVelocity_straight);
-    else if(command == "swa1") setSwitch(mySwitches[0].port,mySwitches[0].switchVelocity_change);
-    else if(command == "swb0") setSwitch(mySwitches[1].port,mySwitches[1].switchVelocity_straight);
-    else if(command == "swb1") setSwitch(mySwitches[1].port,mySwitches[1].switchVelocity_change);
+    if (command == "swa0") setSwitch(mySwitches[0],0);
+    else if(command == "swa1") setSwitch(mySwitches[0],1);
+    else if(command == "swb0") setSwitch(mySwitches[1],0);
+    else if(command == "swb1") setSwitch(mySwitches[1],1);
 	else if(command == "resetsw") resetSwitch();
 	else{
 		Serial.println(">command not found");
@@ -91,14 +94,25 @@ void loop() {
 } // End of loop
 
 
-void setSwitch(byte port, int velocity){	
+void setSwitch(Switches cSwitch, bool position){	
 
-	_println("setSwitch");
-	_println(port.toString().c_str());
+	// position 0=straight, 1= change
+
+	 _println("setSwitch");
+	 Serial.println(cSwitch.port,DEC);
+	 
+	 if(cSwitch.switchState == position){
+		_println("already setted");
+		return;
+	 }
+	 
+	 int velocity = position ? cSwitch.switchVelocity_change : cSwitch.switchVelocity_straight;
     
-    mySwitch.setTachoMotorSpeed(port, velocity);
-    delay(switchInterval);
-    mySwitch.stopTachoMotor(port);
+	mySwitch.setTachoMotorSpeed(cSwitch.port, velocity);
+	delay(switchInterval);
+	mySwitch.stopTachoMotor(cSwitch.port);
+	
+	cSwitch.switchState = position;
     
 }
 
@@ -114,7 +128,6 @@ void _println(String text) {
 
 void resetSwitch() {
   for (int idSwitch = 0; idSwitch < MY_SWITCH_LEN; idSwitch++) {   
-	setSwitch(mySwitches[idSwitch].port,mySwitches[0].switchVelocity_straight)  
-    myTrains[idSwitch].switchState = 0;
+	  setSwitch(mySwitches[idSwitch],0);  		
   }
 }
