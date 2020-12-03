@@ -7,7 +7,7 @@
  * 
  */
  
- /* ver 1.1 */
+ /* ver 1.2 */
 
 #include "Lpf2Hub.h"
 
@@ -17,6 +17,7 @@ byte pPortC = (byte)ControlPlusHubPort::C; //0 -> A) Black (C)
 byte pPortD = (byte)ControlPlusHubPort::D; //1 -> B) Orange (D)
 byte pPortA = (byte)ControlPlusHubPort::A; //2 -> C) White (A) // battery shed
 int switchInterval = 250;
+int switchVelocity = 35;
 bool isVerbose = true;
 
 
@@ -24,8 +25,6 @@ typedef struct {
   byte* port;
   String switchColor;
   bool switchState;  
-  int switchVelocity_straight;
-  int switchVelocity_change;  
 } Switches;
 
 
@@ -33,12 +32,10 @@ typedef struct {
 
 //port  - color  -  status (0= straight 1= change) - vel_str - vel_change 
 Switches mySwitchControlleres[MY_SWITCH_LEN] = {
-  { &pPortC, "Black" , 0, -35, 35}, //primo switch
-  { &pPortD, "Orange" , 0, -35, 35}, // secondo switch
-  { &pPortA, "White" , 0, -35, 35} // battery shed switch
+  { &pPortC, "Black" , 0, }, //primo switch
+  { &pPortD, "Orange" , 0,}, // secondo switch
+  { &pPortA, "White" , 0, } // battery shed switch
 };
-
-
 
 
 void readFromSerial() {
@@ -80,8 +77,6 @@ void loop() {
       Serial.println("Connected to HUB");
 	  char hubName[] = "Switch";
 	  mySwitchController.setHubName(hubName);
-    Serial.print("Hub address: ");
-    Serial.println(mySwitchController.getHubAddress().toString().c_str());
   	
     } else {
       Serial.println("Failed to connect to HUB");
@@ -111,7 +106,7 @@ void setSwitch(Switches *cSwitch, bool position){
 		return;
 	 }
 	 
-	 int velocity = position ? cSwitch->switchVelocity_change : cSwitch->switchVelocity_straight;  
+	 int velocity = position ? switchVelocity : (switchVelocity * -1);  
 
   mySwitchController.setLedColor(YELLOW);    
 	mySwitchController.setTachoMotorSpeed(*myPort, velocity);
