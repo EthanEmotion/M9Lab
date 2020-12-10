@@ -445,7 +445,7 @@ void doMainCode() {
 
 void scanSwitchController(){
 	
-	if (!mySwitchController.isConnected() && !mySwitchController.isConnecting()) mySwitchController.init(switchControllerAddress); 
+	if (!mySwitchController.isConnected() && !mySwitchController.isConnecting()) mySwitchController.init(switchControllerAddress.c_str(), 1); 
 	
 	// connect flow. Search for BLE services and try to connect if the uuid of the hub is found
 	  if (mySwitchController.isConnecting()) {
