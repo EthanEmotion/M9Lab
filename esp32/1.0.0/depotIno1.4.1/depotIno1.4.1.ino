@@ -13,7 +13,7 @@
 
 #include "Lpf2Hub.h"
 
-String ver = "1.4.1";
+String ver = "1.4.2";
 
 // create a hub instance for train
 Lpf2Hub myTrainHub_TA;
@@ -34,11 +34,12 @@ byte pPortD = (byte)ControlPlusHubPort::D; //1 -> B) Orange (D)
 byte pPortA = (byte)ControlPlusHubPort::A; //2 -> C) White (A) // battery shed
 int switchInterval = 250;
 int switchVelocity = 35;
+int switchBatteryLevel=100;
 String switchControllerAddress = "90:84:2b:51:ba:b0";
 
 // global
 bool isSystemReady = false;
-bool isVerbose = false;
+bool isVerbose = true;
 
 
 // Trains structure
@@ -52,6 +53,8 @@ typedef struct {
   int hubState;
   int trainState;
   int batteryLevel;
+  char switchPosition[3];
+  Color ledColor;
 } Train;
 
 // Switches structure
@@ -74,11 +77,13 @@ typedef struct {
 byte sensorAcceptedColors[MY_COLOR_LEN] = {(byte)Color::WHITE, (byte)Color::CYAN,  (byte)Color::RED};
 
 // Trains Maps
-//code  - hubobj - hubColor  -  hubAddress - speed - lastcolor - hubState (-1 = off, 0=ready, 1=active) - trainstate - batteryLevel
+//code  - hubobj - hubColor  -  hubAddress - speed - lastcolor - hubState (-1 = off, 0=ready, 1=active) - trainstate - batteryLevel - switchPosition
 Train myTrains[MY_TRAIN_LEN] = {
-  { &myTrainHub_TA, "Yellow" , "90:84:2b:04:a8:c5", trainSpeed, 0, 0, -1, 0, 100}
-  , { &myTrainHub_TB, "Red", "90:84:2b:1c:be:cf", trainSpeed, 0, 0 , -1, 0, 100}
-  , { &myTrainHub_TC, "Green", "90:84:2b:16:9a:1f", trainSpeed, 0, 0 , -1, 0, 100}
+  { &myTrainHub_TB, "Red",   "90:84:2b:1c:be:cf", trainSpeed, 0, 0, -1, 0, 100, "01", RED}
+  ,{ &myTrainHub_TC, "Green", "90:84:2b:16:9a:1f", trainSpeed, 0, 0, -1, 0, 100, "00", CYAN}
+  ,{ &myTrainHub_TA, "Yellow" , "90:84:2b:04:a8:c5", trainSpeed, 0, 0, -1, 0, 100, "10", YELLOW}
+  
+  
 };
 
 
@@ -129,14 +134,16 @@ void readFromSerial() {
     else if(command == "off") systemOff();
     else if(command == "help") printLegenda();
     else if(command == "status") systemStatus();
-	else if(command == "verboseon") verboseOn();
-	else if(command == "verboseoff") verboseOff();
-	else if (command == "swa0") setSwitch(&mySwitchControlleres[0],0);
+	  else if(command == "verboseon") verboseOn();
+	  else if(command == "verboseoff") verboseOff();
+	  else if(command == "swa0") setSwitch(&mySwitchControlleres[0],0);
     else if(command == "swa1") setSwitch(&mySwitchControlleres[0],1);
     else if(command == "swb0") setSwitch(&mySwitchControlleres[1],0);
     else if(command == "swb1") setSwitch(&mySwitchControlleres[1],1);
+    
     else if(command == "swc0") setSwitch(&mySwitchControlleres[2],0);
     else if(command == "swc1") setSwitch(&mySwitchControlleres[2],1);
+    
 	else if(command == "resetsw") resetSwitch();
 	else{
 		Serial.println(">command not found");
@@ -157,12 +164,10 @@ void setSwitch(Switches *cSwitch, bool position){
 	 }
 	 
 	 int velocity = position ? switchVelocity : (switchVelocity * -1);  
-
-	mySwitchController.setLedColor(YELLOW);    
+	
 	mySwitchController.setTachoMotorSpeed(*myPort, velocity);
 	delay(switchInterval);
-	mySwitchController.stopTachoMotor(*myPort);
-	mySwitchController.setLedColor(BLUE);    	
+	mySwitchController.stopTachoMotor(*myPort);	
 	cSwitch->switchState = position;
     
 }
@@ -228,30 +233,27 @@ void panic() {
 void systemStatus() {
 
   //TODO
-
-
-	Serial.println("hubColor    batteryLevel hubState trainState speed");
+	Serial.println("hubColor,batteryLevel,hubState,trainState,speed");
 	Serial.println("_________________________________________________");
-    for (int idTrain = 0; idTrain < MY_TRAIN_LEN; idTrain++) {
-		
-		String space = "";
-		for (int x=0; x<myTrains[idTrain].hubColor.length()-10;x++){
-		  space += " ";			
-    }
-		Serial.println(myTrains[idTrain].hubColor + space + " " + myTrains[idTrain].batteryLevel + " " + myTrains[idTrain].hubState + " " +  myTrains[idTrain].trainState + " " + myTrains[idTrain].speed);
-    }
+  
+  for (int idTrain = 0; idTrain < MY_TRAIN_LEN; idTrain++) {			
+	  Serial.println(myTrains[idTrain].hubColor + "," + myTrains[idTrain].batteryLevel + "," + myTrains[idTrain].hubState + "," +  myTrains[idTrain].trainState + "," + myTrains[idTrain].speed);
+  }
+      
 	Serial.println("_________________________________________________");
 
+  Serial.println('Switch Battery Level:');
+  Serial.println(switchBatteryLevel);
 
-	/*    
-
-    String commandx = "{\"TA\":" +  String(myTrains[0].stato) + ",\"TB\":" +  String(myTrains[1].stato) + ",\"TC\":" +  String(myTrains[2].stato) + ",\"SA\":" +  String(speedA1) + ",\"SB\":" +  String(speedA2)  + ",\"SC\":" +  String(speedB)  + ",\"S1\":" +  String(mySwitch[0].stato) + ",\"S2\":" +  String(mySwitch[1].stato) + "}";
-    if (verbose) Serial.println(commandx);
 	
+}
 
-  */
-
-
+void hubButtonCallbackSwitch(void *hub, HubPropertyReference hubProperty, uint8_t *pData) {
+  Lpf2Hub *myHub = (Lpf2Hub *)hub;
+  if (hubProperty == HubPropertyReference::BATTERY_VOLTAGE)
+  {
+    switchBatteryLevel = myHub->parseBatteryLevel(pData);        
+  }
 
 }
 
@@ -281,7 +283,6 @@ void hubButtonCallback(void *hub, HubPropertyReference hubProperty, uint8_t *pDa
             Serial.println("Hub " + myTrains[idTrain].hubColor + " is ready");
             myTrains[idTrain].hubState = 1;
             connectedTrain++;
-
             
             byte portForDevice = myHub->getPortForDeviceType((byte)DeviceType::COLOR_DISTANCE_SENSOR);
             if (portForDevice != 255) {
@@ -372,9 +373,15 @@ void startTrain(int idTrain) {
 
   _println("Start " + myTrains[idTrain].hubColor);
   _println("Train " + myTrains[idTrain].hubColor + " Battery Level: "  + myTrains[idTrain].batteryLevel);
-  // TODO -> setta scambi per il ritorno e/o BAtttery Level
-
-
+  
+  // TODO -> setta scambi per il ritorno e/o Battery Level
+  for(int i=0; i < strlen(myTrains[idTrain].switchPosition); i++ ) {
+    bool c = (myTrains[idTrain].switchPosition[i]) == '1' ? true : false; 
+    setSwitch(&mySwitchControlleres[i],c);  
+  }
+  
+  mySwitchController.setLedColor(myTrains[idTrain].ledColor);    
+  
   if (myTrains[idTrain].speed < 0) myTrains[idTrain].speed = -1 * myTrains[idTrain].speed;
   myTrains[idTrain].trainState = myTrains[idTrain].speed;
   myTrain->setBasicMotorSpeed(portA, myTrains[idTrain].speed);
@@ -449,15 +456,16 @@ void scanSwitchController(){
 	
 	// connect flow. Search for BLE services and try to connect if the uuid of the hub is found
 	  if (mySwitchController.isConnecting()) {
-		mySwitchController.connectHub();
-		if (mySwitchController.isConnected()) {
-		  Serial.println("Connected to HUB");
-		  char hubName[] = "Switch";
-		  mySwitchController.setHubName(hubName);
-		
-		} else {
-		  Serial.println("Failed to connect to HUB");
-		}
+  		mySwitchController.connectHub();
+  		if (mySwitchController.isConnected()) {
+  		  Serial.println("Connected to Switch Controller");
+  		  char hubName[] = "Switch";
+  		  mySwitchController.setHubName(hubName);
+        //mySwitchController.activateHubPropertyUpdate(HubPropertyReference::BATTERY_VOLTAGE, hubButtonCallbackSwitch);
+  		
+  		} else {
+  		  Serial.println("Failed to connect to HUB");
+  		}
 	  }
 	  
 }
