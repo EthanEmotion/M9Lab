@@ -5,15 +5,15 @@
 // necessita di 3 hub city per i treni (motore + sensore colore) e un hub technic (3 motori) per gli scambi.
 // TrenIno4 - 2020 Code by Stefx
 
-// test track all ok
 
+// test track all ok
 // TODO:
 // scambi per far entrare treni o mandarli
 
 
 #include "Lpf2Hub.h"
 
-String ver = "1.4.2";
+String ver = "1.4.3";
 
 // create a hub instance for train
 Lpf2Hub myTrainHub_TA;
@@ -79,8 +79,8 @@ byte sensorAcceptedColors[MY_COLOR_LEN] = {(byte)Color::WHITE, (byte)Color::CYAN
 // Trains Maps
 //code  - hubobj - hubColor  -  hubAddress - speed - lastcolor - hubState (-1 = off, 0=ready, 1=active) - trainstate - batteryLevel - switchPosition
 Train myTrains[MY_TRAIN_LEN] = {
-  { &myTrainHub_TB, "Red",   "90:84:2b:1c:be:cf", trainSpeed, 0, 0, -1, 0, 100, "01", RED}
-  ,{ &myTrainHub_TC, "Green", "90:84:2b:16:9a:1f", trainSpeed, 0, 0, -1, 0, 100, "00", CYAN}
+   { &myTrainHub_TB, "Red",     "90:84:2b:1c:be:cf", trainSpeed, 0, 0, -1, 0, 100, "01", RED}
+  ,{ &myTrainHub_TC, "Green",   "90:84:2b:16:9a:1f", trainSpeed, 0, 0, -1, 0, 100, "00", CYAN}
   ,{ &myTrainHub_TA, "Yellow" , "90:84:2b:04:a8:c5", trainSpeed, 0, 0, -1, 0, 100, "10", YELLOW}
   
   
@@ -134,17 +134,16 @@ void readFromSerial() {
     else if(command == "off") systemOff();
     else if(command == "help") printLegenda();
     else if(command == "status") systemStatus();
-	  else if(command == "verboseon") verboseOn();
-	  else if(command == "verboseoff") verboseOff();
-	  else if(command == "swa0") setSwitch(&mySwitchControlleres[0],0);
+	else if(command == "verboseon") verboseOn();
+	else if(command == "verboseoff") verboseOff();
+	
+	else if(command == "swa0") setSwitch(&mySwitchControlleres[0],0);
     else if(command == "swa1") setSwitch(&mySwitchControlleres[0],1);
     else if(command == "swb0") setSwitch(&mySwitchControlleres[1],0);
-    else if(command == "swb1") setSwitch(&mySwitchControlleres[1],1);
-    
+    else if(command == "swb1") setSwitch(&mySwitchControlleres[1],1);    
     else if(command == "swc0") setSwitch(&mySwitchControlleres[2],0);
-    else if(command == "swc1") setSwitch(&mySwitchControlleres[2],1);
-    
-	else if(command == "resetsw") resetSwitch();
+    else if(command == "swc1") setSwitch(&mySwitchControlleres[2],1);    
+	else if(command == "resetsw") switchReset();
 	else{
 		Serial.println(">command not found");
 	}
@@ -172,7 +171,7 @@ void setSwitch(Switches *cSwitch, bool position){
     
 }
 
-void resetSwitch() {
+void switchReset() {
   for (int idSwitch = 0; idSwitch < MY_SWITCH_LEN; idSwitch++) {   
 	  setSwitch(&mySwitchControlleres[idSwitch],0);  		
   }
@@ -209,7 +208,7 @@ void systemReset() {
     myTrains[idTrain].lastcolor = 0;
     myTrains[idTrain].colorPreviousMillis = 0;
   }
-  resetSwitch();
+  switchReset();
 }
 
 void panic() {
@@ -231,24 +230,23 @@ void panic() {
 
 // uso interno private
 void systemStatus() {
-
-  //TODO
+	
 	Serial.println("hubColor,batteryLevel,hubState,trainState,speed");
 	Serial.println("_________________________________________________");
   
-  for (int idTrain = 0; idTrain < MY_TRAIN_LEN; idTrain++) {			
+	for (int idTrain = 0; idTrain < MY_TRAIN_LEN; idTrain++) {			
 	  Serial.println(myTrains[idTrain].hubColor + "," + myTrains[idTrain].batteryLevel + "," + myTrains[idTrain].hubState + "," +  myTrains[idTrain].trainState + "," + myTrains[idTrain].speed);
-  }
+	}
       
 	Serial.println("_________________________________________________");
 
-  Serial.println('Switch Battery Level:');
-  Serial.println(switchBatteryLevel);
-
+	Serial.println('Switch Battery Level:');
+	Serial.println(switchBatteryLevel);
 	
 }
 
 void hubButtonCallbackSwitch(void *hub, HubPropertyReference hubProperty, uint8_t *pData) {
+	
   Lpf2Hub *myHub = (Lpf2Hub *)hub;
   if (hubProperty == HubPropertyReference::BATTERY_VOLTAGE)
   {
@@ -258,6 +256,7 @@ void hubButtonCallbackSwitch(void *hub, HubPropertyReference hubProperty, uint8_
 }
 
 void hubButtonCallback(void *hub, HubPropertyReference hubProperty, uint8_t *pData) {
+	
   Lpf2Hub *myHub = (Lpf2Hub *)hub;
   int idTrain = getHubIdByAddress(myHub->getHubAddress().toString().c_str());
   if (idTrain == -1) return;
@@ -320,7 +319,6 @@ void hubButtonCallback(void *hub, HubPropertyReference hubProperty, uint8_t *pDa
 // callback function to handle updates of sensor values
 void colorDistanceSensorCallback(void *hub, byte portNumber, DeviceType deviceType, uint8_t *pData) {
 
-
   Lpf2Hub *myHub = (Lpf2Hub *)hub;
   int idTrain = getHubIdByAddress(myHub->getHubAddress().toString().c_str());
   if (idTrain == -1) return;
@@ -328,8 +326,7 @@ void colorDistanceSensorCallback(void *hub, byte portNumber, DeviceType deviceTy
 
   if (deviceType == DeviceType::COLOR_DISTANCE_SENSOR) {
     int color = myHub->parseColor(pData);
-
-    //if ((myTrains[idTrain].lastcolor == color || color==0 || color==9 || color == 255)) return;
+    
     if (myTrains[idTrain].lastcolor == color || !checkIfSensorColorIsAccepted(color)) return;
     myTrains[idTrain].lastcolor = color;
 
@@ -346,14 +343,15 @@ void colorDistanceSensorCallback(void *hub, byte portNumber, DeviceType deviceTy
     // set hub LED color to detected color of sensor and set motor speed dependent on color
     if (color == (byte)Color::RED) stopTrain(idTrain);
     else if (color == (byte)Color::WHITE) startTrain(idTrain);
-    else if (color == (byte)Color::CYAN) stopAndTrain(idTrain, true); //GREEN
-    else if (color == (byte)Color::YELLOW) stopAndTrain(idTrain, false);
+    else if (color == (byte)Color::CYAN) stopAndDoTrain(idTrain, true); //GREEN
+    else if (color == (byte)Color::YELLOW) stopAndDoTrain(idTrain, false);
     else if (color == (byte)Color::BLUE) invertTrain(idTrain);
 
   }
 }
 
-void stopAndTrain(int idTrain, bool invert) {
+void stopAndDoTrain(int idTrain, bool invert) {
+	
   Lpf2Hub *myTrain = myTrains[idTrain].hubobj;
 
   _print("Stop & ");
@@ -369,12 +367,13 @@ void stopAndTrain(int idTrain, bool invert) {
 }
 
 void startTrain(int idTrain) {
+	
   Lpf2Hub *myTrain = myTrains[idTrain].hubobj;
 
   _println("Start " + myTrains[idTrain].hubColor);
   _println("Train " + myTrains[idTrain].hubColor + " Battery Level: "  + myTrains[idTrain].batteryLevel);
   
-  // TODO -> setta scambi per il ritorno e/o Battery Level
+  // TODO -> setta scambi per il ritorno e/o Battery Level (to check)
   for(int i=0; i < strlen(myTrains[idTrain].switchPosition); i++ ) {
     bool c = (myTrains[idTrain].switchPosition[i]) == '1' ? true : false; 
     setSwitch(&mySwitchControlleres[i],c);  
@@ -391,16 +390,17 @@ void startTrain(int idTrain) {
 }
 
 void stopTrain(int idTrain) {
+	
   Lpf2Hub *myTrain = myTrains[idTrain].hubobj;
   
   _println("Stop " + myTrains[idTrain].hubColor);
-  myTrain->stopBasicMotor(portA);
-  //myTrains[idTrain].speed = 0;
+  myTrain->stopBasicMotor(portA);  
   myTrains[idTrain].trainState = 0;
 
 }
 
 void invertTrain(int idTrain) {
+	
   Lpf2Hub *myTrain = myTrains[idTrain].hubobj;
   
   _println("Invert " + myTrains[idTrain].hubColor);
@@ -453,8 +453,7 @@ void doMainCode() {
 void scanSwitchController(){
 	
 	if (!mySwitchController.isConnected() && !mySwitchController.isConnecting()) mySwitchController.init(switchControllerAddress.c_str(), 1); 
-	
-	// connect flow. Search for BLE services and try to connect if the uuid of the hub is found
+		
 	  if (mySwitchController.isConnecting()) {
   		mySwitchController.connectHub();
   		if (mySwitchController.isConnected()) {
@@ -464,7 +463,7 @@ void scanSwitchController(){
         //mySwitchController.activateHubPropertyUpdate(HubPropertyReference::BATTERY_VOLTAGE, hubButtonCallbackSwitch);
   		
   		} else {
-  		  Serial.println("Failed to connect to HUB");
+  		  Serial.println("Failed to connect to Switch Controller");
   		}
 	  }
 	  
@@ -498,7 +497,7 @@ void scanHub( int idTrain) {
       connectedTrain++;
 
     } else {
-      Serial.println("Failed to connect with hub" +  myTrains[idTrain].hubColor);
+      Serial.println("Failed to connect with hub " +  myTrains[idTrain].hubColor);
     }
 
   }
@@ -539,7 +538,6 @@ bool checkIfSensorColorIsAccepted(byte inputColor) {
   }
   return false;
 }
-
 
 
 void checkIntervalisExpired(int idTrain ) {
