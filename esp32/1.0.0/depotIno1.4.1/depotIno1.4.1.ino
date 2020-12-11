@@ -13,7 +13,7 @@
 
 #include "Lpf2Hub.h"
 
-String ver = "1.4.3";
+String ver = "1.4.4";
 
 // create a hub instance for train
 Lpf2Hub myTrainHub_TA;
@@ -21,7 +21,8 @@ Lpf2Hub myTrainHub_TB;
 Lpf2Hub myTrainHub_TC;
 byte portA = (byte)PoweredUpHubPort::A;
 byte portB = (byte)PoweredUpHubPort::B;
-int trainSpeed = 25;
+//int trainSpeed = 25;
+
 int connectedTrain = 0;
 int colorInterval = 5000;
 int beforeStartInterval = 5000;
@@ -79,11 +80,9 @@ byte sensorAcceptedColors[MY_COLOR_LEN] = {(byte)Color::WHITE, (byte)Color::CYAN
 // Trains Maps
 //code  - hubobj - hubColor  -  hubAddress - speed - lastcolor - hubState (-1 = off, 0=ready, 1=active) - trainstate - batteryLevel - switchPosition
 Train myTrains[MY_TRAIN_LEN] = {
-   { &myTrainHub_TB, "Red",     "90:84:2b:1c:be:cf", trainSpeed, 0, 0, -1, 0, 100, "01", RED}
-  ,{ &myTrainHub_TC, "Green",   "90:84:2b:16:9a:1f", trainSpeed, 0, 0, -1, 0, 100, "00", CYAN}
-  ,{ &myTrainHub_TA, "Yellow" , "90:84:2b:04:a8:c5", trainSpeed, 0, 0, -1, 0, 100, "10", YELLOW}
-  
-  
+   { &myTrainHub_TB, "Red",     "90:84:2b:1c:be:cf", 40 , 0, 0, -1, 0, 100, "01", RED}
+  ,{ &myTrainHub_TC, "Green",   "90:84:2b:16:9a:1f", 30, 0, 0, -1, 0, 100, "00", CYAN}
+  ,{ &myTrainHub_TA, "Yellow" , "90:84:2b:04:a8:c5", 45 , 0, 0, -1, 0, 100, "10", YELLOW}    
 };
 
 
@@ -240,7 +239,7 @@ void systemStatus() {
       
 	Serial.println("_________________________________________________");
 
-	Serial.println('Switch Battery Level:');
+	Serial.println("Switch Battery Level: ");
 	Serial.println(switchBatteryLevel);
 	
 }
@@ -360,7 +359,8 @@ void stopAndDoTrain(int idTrain, bool invert) {
 
   if (myTrains[idTrain].colorPreviousMillis == 0) {
     saveInterval(myTrains[idTrain].colorPreviousMillis);
-    myTrain->stopBasicMotor(portA);
+    myTrain->stopBasicMotor(portA);    
+    
     if (invert) myTrains[idTrain].speed = -1 * myTrains[idTrain].speed;
   }
 
@@ -380,6 +380,11 @@ void startTrain(int idTrain) {
   }
   
   mySwitchController.setLedColor(myTrains[idTrain].ledColor);    
+
+  //TEST: set speed depend by battery level
+  //float f = (100 - myTrains[idTrain].batteryLevel )/ 5;
+  //myTrains[idTrain].speed = (int) (trainSpeed + f);
+  Serial.println(myTrains[idTrain].speed);
   
   if (myTrains[idTrain].speed < 0) myTrains[idTrain].speed = -1 * myTrains[idTrain].speed;
   myTrains[idTrain].trainState = myTrains[idTrain].speed;
@@ -460,7 +465,7 @@ void scanSwitchController(){
   		  Serial.println("Connected to Switch Controller");
   		  char hubName[] = "Switch";
   		  mySwitchController.setHubName(hubName);
-        //mySwitchController.activateHubPropertyUpdate(HubPropertyReference::BATTERY_VOLTAGE, hubButtonCallbackSwitch);
+        mySwitchController.activateHubPropertyUpdate(HubPropertyReference::BATTERY_VOLTAGE, hubButtonCallbackSwitch);
   		
   		} else {
   		  Serial.println("Failed to connect to Switch Controller");
