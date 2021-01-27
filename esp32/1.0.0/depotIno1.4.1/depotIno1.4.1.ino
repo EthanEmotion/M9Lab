@@ -13,7 +13,7 @@
 
 #include "Lpf2Hub.h"
 
-String ver = "1.4.4";
+String ver = "1.4.5";
 
 // create a hub instance for train
 Lpf2Hub myTrainHub_TA;
@@ -75,13 +75,13 @@ typedef struct {
 //  (byte)Color::BLUE,(byte)Color::YELLOW
 
 // Color Maps
-byte sensorAcceptedColors[MY_COLOR_LEN] = {(byte)Color::WHITE, (byte)Color::CYAN,  (byte)Color::RED};
+byte sensorAcceptedColors[MY_COLOR_LEN] = {(byte)Color::WHITE, (byte)Color::GREEN,  (byte)Color::RED};
 
 // Trains Maps
 //code  - hubobj - hubColor  -  hubAddress - speed - lastcolor - hubState (-1 = off, 0=ready, 1=active) - trainstate - batteryLevel - switchPosition
 Train myTrains[MY_TRAIN_LEN] = {
    { &myTrainHub_TB, "Red",     "90:84:2b:1c:be:cf", 40 , 0, 0, -1, 0, 100, "01", RED}
-  ,{ &myTrainHub_TC, "Green",   "90:84:2b:16:9a:1f", 30, 0, 0, -1, 0, 100, "00", CYAN}
+  ,{ &myTrainHub_TC, "Green",   "90:84:2b:16:9a:1f", 30, 0, 0, -1, 0, 100, "00", GREEN}
   ,{ &myTrainHub_TA, "Yellow" , "90:84:2b:04:a8:c5", 45 , 0, 0, -1, 0, 100, "10", YELLOW}    
 };
 
@@ -342,7 +342,7 @@ void colorDistanceSensorCallback(void *hub, byte portNumber, DeviceType deviceTy
     // set hub LED color to detected color of sensor and set motor speed dependent on color
     if (color == (byte)Color::RED) stopTrain(idTrain);
     else if (color == (byte)Color::WHITE) startTrain(idTrain);
-    else if (color == (byte)Color::CYAN) stopAndDoTrain(idTrain, true); //GREEN
+    else if (color == (byte)Color::GREEN) stopAndDoTrain(idTrain, true); //GREEN
     else if (color == (byte)Color::YELLOW) stopAndDoTrain(idTrain, false);
     else if (color == (byte)Color::BLUE) invertTrain(idTrain);
 
