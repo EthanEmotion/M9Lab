@@ -13,7 +13,7 @@
 
 #include "Lpf2Hub.h"
 
-String ver = "1.4.5";
+String ver = "1.4.6";
 
 // create a hub instance for train
 Lpf2Hub myTrainHub_TA;
@@ -30,9 +30,9 @@ int lastTrainStarted = -1;
 
 // create a hub instance for switch
 Lpf2Hub mySwitchController;
-byte pPortC = (byte)ControlPlusHubPort::C; //0 -> A) Black (C)
-byte pPortD = (byte)ControlPlusHubPort::D; //1 -> B) Orange (D)
-byte pPortA = (byte)ControlPlusHubPort::A; //2 -> C) White (A) // battery shed
+byte pPortC = (byte)ControlPlusHubPort::D; //0 -> A) White (D)
+byte pPortD = (byte)ControlPlusHubPort::C; //1 -> B) Blue (C)
+byte pPortA = (byte)ControlPlusHubPort::B; //2 -> C) Red (B) // battery shed
 int switchInterval = 250;
 int switchVelocity = 35;
 int switchBatteryLevel=100;
@@ -89,9 +89,9 @@ Train myTrains[MY_TRAIN_LEN] = {
 // Switch Maps
 //port  - color  -  status (0= straight 1= change) - vel_str - vel_change 
 Switches mySwitchControlleres[MY_SWITCH_LEN] = {
-  { &pPortC, "Black" , 0, }, //primo switch
-  { &pPortD, "Orange" , 0,}, // secondo switch
-  { &pPortA, "White" , 0, } // battery shed switch
+  { &pPortC, "White" , 0, }, //primo switch
+  { &pPortD, "Blu" , 0,}, // secondo switch
+  { &pPortA, "Red" , 0, } // battery shed switch
 };
 
 
@@ -112,13 +112,13 @@ void printLegenda() {
   Serial.println("verboseon = show more status messages");
   Serial.println("verboseoff = show less status messages");
   
-  Serial.println("swa0 = show less status messages");
-  Serial.println("swa1 = show less status messages");
-  Serial.println("swb0 = show less status messages");
-  Serial.println("swb1 = show less status messages");
-  Serial.println("swc0 = show less status messages");
-  Serial.println("swc1 = show less status messages");
-  Serial.println("resetsw = show less status messages");
+  Serial.println("swa0 = move switch");
+  Serial.println("swa1 = move switch");
+  Serial.println("swb0 = move switch");
+  Serial.println("swb1 = move switch");
+  Serial.println("swc0 = move switch");
+  Serial.println("swc1 = move switch");
+  Serial.println("resetsw = move switch");
 
   Serial.println("_________________________________________________");
 }
