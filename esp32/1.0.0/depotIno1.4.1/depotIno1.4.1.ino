@@ -13,7 +13,7 @@
 
 #include "Lpf2Hub.h"
 
-String ver = "1.4.4";
+String ver = "1.4.6";
 
 // create a hub instance for train
 Lpf2Hub myTrainHub_TA;
@@ -30,9 +30,9 @@ int lastTrainStarted = -1;
 
 // create a hub instance for switch
 Lpf2Hub mySwitchController;
-byte pPortC = (byte)ControlPlusHubPort::C; //0 -> A) Black (C)
-byte pPortD = (byte)ControlPlusHubPort::D; //1 -> B) Orange (D)
-byte pPortA = (byte)ControlPlusHubPort::A; //2 -> C) White (A) // battery shed
+byte pPortC = (byte)ControlPlusHubPort::D; //0 -> A) White (D)
+byte pPortD = (byte)ControlPlusHubPort::C; //1 -> B) Blue (C)
+byte pPortA = (byte)ControlPlusHubPort::B; //2 -> C) Red (B) // battery shed
 int switchInterval = 250;
 int switchVelocity = 35;
 int switchBatteryLevel=100;
@@ -75,13 +75,13 @@ typedef struct {
 //  (byte)Color::BLUE,(byte)Color::YELLOW
 
 // Color Maps
-byte sensorAcceptedColors[MY_COLOR_LEN] = {(byte)Color::WHITE, (byte)Color::CYAN,  (byte)Color::RED};
+byte sensorAcceptedColors[MY_COLOR_LEN] = {(byte)Color::WHITE, (byte)Color::GREEN,  (byte)Color::RED};
 
 // Trains Maps
 //code  - hubobj - hubColor  -  hubAddress - speed - lastcolor - hubState (-1 = off, 0=ready, 1=active) - trainstate - batteryLevel - switchPosition
 Train myTrains[MY_TRAIN_LEN] = {
    { &myTrainHub_TB, "Red",     "90:84:2b:1c:be:cf", 40 , 0, 0, -1, 0, 100, "01", RED}
-  ,{ &myTrainHub_TC, "Green",   "90:84:2b:16:9a:1f", 30, 0, 0, -1, 0, 100, "00", CYAN}
+  ,{ &myTrainHub_TC, "Green",   "90:84:2b:16:9a:1f", 30, 0, 0, -1, 0, 100, "00", GREEN}
   ,{ &myTrainHub_TA, "Yellow" , "90:84:2b:04:a8:c5", 45 , 0, 0, -1, 0, 100, "10", YELLOW}    
 };
 
@@ -89,9 +89,9 @@ Train myTrains[MY_TRAIN_LEN] = {
 // Switch Maps
 //port  - color  -  status (0= straight 1= change) - vel_str - vel_change 
 Switches mySwitchControlleres[MY_SWITCH_LEN] = {
-  { &pPortC, "Black" , 0, }, //primo switch
-  { &pPortD, "Orange" , 0,}, // secondo switch
-  { &pPortA, "White" , 0, } // battery shed switch
+  { &pPortC, "White" , 0, }, //primo switch
+  { &pPortD, "Blu" , 0,}, // secondo switch
+  { &pPortA, "Red" , 0, } // battery shed switch
 };
 
 
@@ -112,13 +112,13 @@ void printLegenda() {
   Serial.println("verboseon = show more status messages");
   Serial.println("verboseoff = show less status messages");
   
-  Serial.println("swa0 = show less status messages");
-  Serial.println("swa1 = show less status messages");
-  Serial.println("swb0 = show less status messages");
-  Serial.println("swb1 = show less status messages");
-  Serial.println("swc0 = show less status messages");
-  Serial.println("swc1 = show less status messages");
-  Serial.println("resetsw = show less status messages");
+  Serial.println("swa0 = move switch");
+  Serial.println("swa1 = move switch");
+  Serial.println("swb0 = move switch");
+  Serial.println("swb1 = move switch");
+  Serial.println("swc0 = move switch");
+  Serial.println("swc1 = move switch");
+  Serial.println("resetsw = move switch");
 
   Serial.println("_________________________________________________");
 }
@@ -342,7 +342,7 @@ void colorDistanceSensorCallback(void *hub, byte portNumber, DeviceType deviceTy
     // set hub LED color to detected color of sensor and set motor speed dependent on color
     if (color == (byte)Color::RED) stopTrain(idTrain);
     else if (color == (byte)Color::WHITE) startTrain(idTrain);
-    else if (color == (byte)Color::CYAN) stopAndDoTrain(idTrain, true); //GREEN
+    else if (color == (byte)Color::GREEN) stopAndDoTrain(idTrain, true); //GREEN
     else if (color == (byte)Color::YELLOW) stopAndDoTrain(idTrain, false);
     else if (color == (byte)Color::BLUE) invertTrain(idTrain);
 
