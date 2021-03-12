@@ -1,9 +1,0 @@
-10x basi 32x32
-1x scambi lego
-38 diritti
-
-
-4x 2x3 plate ???
-8x 1x2 tile dbg
-1x 1x1 tile dbg (no)
-1x 1x2 pla rail dbg
