@@ -1,6 +1,9 @@
 #include <FastLED.h>
 #define NUM_LEDS 25
 #define DATA_PIN 27
+uint32_t SDM = 0; //Sampling delay in ms
+uint32_t SN = 0; // Sampling number
+int SM = 50;   // maximum sampling number
 
 
 byte charStart = 0x30;
@@ -18,7 +21,7 @@ byte chargen[][5] = {
 };
 
 // ref: http://fastled.io/docs/3.1/struct_c_r_g_b.html
-uint32_t colour[] = {CRGB::Black, CRGB::Red, CRGB::Green, CRGB::Yellow, CRGB::Blue, CRGB::Cyan, CRGB::Purple };
+uint32_t colour[] = {CRGB::Red, CRGB::Green, CRGB::Yellow };
 
 //rotate / flip
 // https://macetech.github.io/FastLED-XY-Map-Generator/
@@ -39,14 +42,17 @@ void setup() {
 }
 
 void loop() {
-  
-  for(int numC=1; numC<7; numC++){
+
+  /*
+  for(int numC=0; numC<3; numC++){
 
     doCountdown(numC);
 
     fullColor(colour[numC]);
     delay(3000);
   }
+  */
+  rulette();
   
 }
 
@@ -78,9 +84,33 @@ void osCopyChar (char myChar, int colorIndex)
   for (int i=0; i<5; i++)
     for (int j=0; j<5; j++)
     {
-      uint32_t typex = (bitRead(chargen[myChar][i], j) == 0x00) ? colour[0] : colour[colorIndex];
+      uint32_t typex = (bitRead(chargen[myChar][i], j) == 0x00) ? CRGB::Black : colour[colorIndex];
       int pos = (i*5)+j;
       leds[XYTable[pos]] = typex;
       FastLED.show(); 
     }
+}
+
+void rulette(){
+  if (++SN > SM)SN = 1;
+  float SDMex = (log10(864)/SM)*SN; //the exponent part --86400 is the number of sec in 1 day
+  SDM = pow(10,SDMex); // the sampling exponential delay
+  Serial.print("Sample No: ");
+  Serial.print(SN);
+  Serial.print("Color No: ");
+  Serial.print(SN % 3);
+  Serial.print("\tDelay: ");
+  Serial.println(SDM);
+  fullColor(colour[SN % 3]);
+  delay(SDM);  
+
+  if(SN==SM){
+    //real randomize
+    int randIdTrain = random(0, 3);
+    fullColor(colour[randIdTrain]);
+    delay(3000);
+    doCountdown(randIdTrain);
+    fullColor(colour[randIdTrain]);
+    // start train
+  }
 }
