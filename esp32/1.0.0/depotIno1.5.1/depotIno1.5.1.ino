@@ -126,7 +126,7 @@ byte sensorAcceptedColors[MY_COLOR_LEN] = { (byte)Color::CYAN, (byte)Color::RED}
 // Trains Maps
 //code  - hubobj - hubColor  -  hubAddress - speed - lastcolor - hubState (-1 = off, 0=ready, 1=active) - trainstate - batteryLevel - switchPosition
 Train myTrains[MY_TRAIN_LEN] = {
-  { &myTrainHub_TB, "Red",     "90:84:2b:1c:be:cf", 35 , 0, 0, -1, 0, 100, "01", RED}
+  { &myTrainHub_TB, "Red",     "90:84:2b:1c:be:cf", 30 , 0, 0, -1, 0, 100, "01", RED}
   , { &myTrainHub_TC, "Green",   "90:84:2b:16:9a:1f", 30, 0, 0, -1, 0, 100, "00", GREEN}
   , { &myTrainHub_TA, "Yellow" , "90:84:2b:04:a8:c5", 45 , 0, 0, -1, 0, 100, "10", YELLOW}
 };
@@ -474,15 +474,16 @@ void loop() {
     if (! mySwitchController.isConnected()) scanSwitchController();
 
     // check for train
-	activeTrain = 0;
+	  activeTrain = 0;
     for (int i = 0; i < MY_TRAIN_LEN; i++) {
       checkIntervalisExpired(i);
       if (! myTrains[i].hubobj->isConnected()) {
-		  scanHub(i);
-	  } else{
-		  if (myTrains[i].hubState == 1) activeTrain++;
-	  }		  
+  		  scanHub(i);
+  	  } else{
+  		  if (myTrains[i].hubState == 1) activeTrain++;
+  	  }		  
     }
+    
     if (isSystemReady) doMainCode();
   }
 
@@ -494,19 +495,19 @@ void doMainCode() {
 	  
     int randIdTrain = random(1, MY_TRAIN_LEN + 1) - 1;
     if (activeTrain > 1 && lastTrainStarted == randIdTrain) return;
-	
-	rulette();
-	fullColor(colour[randIdTrain]);
-    delay(3000);
+	  Lpf2Hub *myTrain = myTrains[randIdTrain].hubobj;
+    if (!myTrain->isConnected()) return;
+  
+	  rulette();  
+    fullColor(colour[randIdTrain]);
+    delay(1000);
     doCountdown(randIdTrain);
     fullColor(colour[randIdTrain]);
-	
-    Lpf2Hub *myTrain = myTrains[randIdTrain].hubobj;
-    if (!myTrain->isConnected()) return;
-     
-    delay(beforeStartInterval);
+  
     lastTrainStarted = randIdTrain;
-    startTrain(randIdTrain);
+    startTrain(randIdTrain);  
+    delay(beforeStartInterval);  
+	  
   }
 
 }
@@ -652,15 +653,20 @@ void osCopyChar (char myChar, int colorIndex)
 }
 
 void rulette(){
-  if (++SN > SM)SN = 1;
-  float SDMex = (log10(864)/SM)*SN; //the exponent part --86400 is the number of sec in 1 day
-  SDM = pow(10,SDMex); // the sampling exponential delay
-  Serial.print("Sample No: ");
-  Serial.print(SN);
-  Serial.print("Color No: ");
-  Serial.print(SN % 3);
-  Serial.print("\tDelay: ");
-  Serial.println(SDM);
-  fullColor(colour[SN % 3]);
-  delay(SDM);   
+  Serial.println("rulette");  
+  SN = 1;
+  while (SN<SM) {
+    float SDMex = (log10(864)/SM)*SN; //the exponent part --86400 is the number of sec in 1 day
+    SDM = pow(10,SDMex); // the sampling exponential delay
+    Serial.print("Sample No: ");
+    Serial.print(SN);
+    Serial.print("Color No: ");
+    Serial.print(SN % 3);
+    Serial.print("\tDelay: ");
+    Serial.println(SDM);
+    fullColor(colour[SN % 3]);
+    delay(SDM);     
+    SN++;  
+  }
+     
 }
