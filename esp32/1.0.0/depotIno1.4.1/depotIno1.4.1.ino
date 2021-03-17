@@ -76,12 +76,12 @@ typedef struct {
 //  (byte)Color::BLUE,(byte)Color::YELLOW
 
 // Color Maps
-byte sensorAcceptedColors[MY_COLOR_LEN] = {(byte)Color::WHITE, (byte)Color::GREEN,  (byte)Color::RED};
+byte sensorAcceptedColors[MY_COLOR_LEN] = { (byte)Color::CYAN,  (byte)Color::RED};
 
 // Trains Maps
 //code  - hubobj - hubColor  -  hubAddress - speed - lastcolor - hubState (-1 = off, 0=ready, 1=active) - trainstate - batteryLevel - switchPosition
 Train myTrains[MY_TRAIN_LEN] = {
-  { &myTrainHub_TB, "Red",     "90:84:2b:1c:be:cf", 40 , 0, 0, -1, 0, 100, "01", RED}
+  { &myTrainHub_TB, "Red",     "90:84:2b:1c:be:cf", 35 , 0, 0, -1, 0, 100, "01", RED}
   , { &myTrainHub_TC, "Green",   "90:84:2b:16:9a:1f", 30, 0, 0, -1, 0, 100, "00", GREEN}
   , { &myTrainHub_TA, "Yellow" , "90:84:2b:04:a8:c5", 45 , 0, 0, -1, 0, 100, "10", YELLOW}
 };
@@ -332,23 +332,23 @@ void colorDistanceSensorCallback(void *hub, byte portNumber, DeviceType deviceTy
   if (deviceType == DeviceType::COLOR_DISTANCE_SENSOR) {
     int color = myHub->parseColor(pData);
 
-    if (myTrains[idTrain].lastcolor == color || !checkIfSensorColorIsAccepted(color)) return;
+    if (myTrains[idTrain].lastcolor == color || !checkIfSensorColorIsAccepted(color) || color==0) return;
     myTrains[idTrain].lastcolor = color;
 
-    /*
+    
       Serial.print("Color ");
       Serial.print("Hub " + myTrains[idTrain].hubColor + ":");
       Serial.println(COLOR_STRING[color]);
       Serial.print("Color dec: ");
       Serial.println(color,DEC);
-    */
+    
 
     myHub->setLedColor((Color)color);
 
     // set hub LED color to detected color of sensor and set motor speed dependent on color
     if (color == (byte)Color::RED) stopTrain(idTrain);
     else if (color == (byte)Color::WHITE) startTrain(idTrain);
-    else if (color == (byte)Color::GREEN) stopAndDoTrain(idTrain, true); //GREEN
+    else if (color == (byte)Color::CYAN) stopAndDoTrain(idTrain, true); //GREEN
     else if (color == (byte)Color::YELLOW) stopAndDoTrain(idTrain, false);
     else if (color == (byte)Color::BLUE) invertTrain(idTrain);
 
@@ -454,6 +454,9 @@ void doMainCode() {
 
     int randIdTrain = random(1, MY_TRAIN_LEN + 1) - 1;
     if (connectedTrain > 1 && lastTrainStarted == randIdTrain) return;
+    Lpf2Hub *myTrain = myTrains[randIdTrain].hubobj;
+    if (!myTrain->isConnected()) return;
+     
     delay(beforeStartInterval);
     lastTrainStarted = randIdTrain;
     startTrain(randIdTrain);
