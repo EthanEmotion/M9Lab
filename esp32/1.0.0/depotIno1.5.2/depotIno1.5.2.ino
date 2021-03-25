@@ -421,8 +421,12 @@ void startTrain(int idTrain) {
     setSwitch(&mySwitchControlleres[i], c);
   }
   
-  //   Battery Level Switch (to check)
-  if( myTrains[idTrain].batteryLevel<20) setSwitch(&mySwitchControlleres[2], 1);
+  //   Battery Level Switch
+  if( myTrains[idTrain].batteryLevel<20){
+    setSwitch(&mySwitchControlleres[2], 1);
+  }else{
+    setSwitch(&mySwitchControlleres[2], 0);
+  }
 
   mySwitchController.setLedColor(myTrains[idTrain].ledColor);
 
