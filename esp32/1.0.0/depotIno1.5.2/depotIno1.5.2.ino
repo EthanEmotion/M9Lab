@@ -678,13 +678,7 @@ void rulette(){
   SN = 1;
   while (SN<SM) {
     float SDMex = (log10(864)/SM)*SN; //the exponent part --86400 is the number of sec in 1 day
-    SDM = pow(10,SDMex); // the sampling exponential delay
-    Serial.print("Sample No: ");
-    Serial.print(SN);
-    Serial.print("Color No: ");
-    Serial.print(SN % 3);
-    Serial.print("\tDelay: ");
-    Serial.println(SDM);
+    SDM = pow(10,SDMex); // the sampling exponential delay    
     fullColor(colour[SN % 3]);
     delay(SDM);     
     SN++;  
